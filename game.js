@@ -46,9 +46,11 @@ function tick() {
 	}
 }
 
-function gameLoop() {
-	canvas.width = window.innerWidth;
-	canvas.height = window.innerHeight;
+function gameLoop(prevWidth, prevHeight) {
+	if (prevWidth != window.innerWidth || prevHeight != window.innerHeight) {
+		canvas.width = window.innerWidth;
+		canvas.height = window.innerHeight;
+	}
 	let canvasWidth = canvas.width;
 	let canvasHeight = canvas.height;
 	let context = canvas.getContext('2d');
@@ -57,11 +59,11 @@ function gameLoop() {
 	tick();
 	render(context, canvasWidth, canvasHeight);
 
-	window.requestAnimationFrame(function() {gameLoop()});
+	window.requestAnimationFrame(function() {gameLoop(canvasWidth, canvasHeight)});
 }
 
 function start() {
-	window.requestAnimationFrame(function() {gameLoop()});
+	window.requestAnimationFrame(function() {gameLoop(0, 0)});
 }
 
 start();

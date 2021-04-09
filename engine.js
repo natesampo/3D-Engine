@@ -44,7 +44,7 @@ function vectorSubtract(vector1, vector2) {
 function vectorNormalize(vector) {
 	let magnitude = getMagnitude(vector);
 
-	if(magnitude == 0) {
+	if (magnitude == 0) {
 		return [0, 0, 0];
 	}
 
@@ -73,8 +73,8 @@ function applyTranslationVector(vector1, vector2) {
 }
 
 function applyMatrixScale(matrix, scale) {
-	for(var i in matrix) {
-		for(var j in matrix[i]) {
+	for (var i in matrix) {
+		for (var j in matrix[i]) {
 			matrix[i][j] = matrix[i][j]*scale;
 		}
 	}
@@ -86,7 +86,7 @@ function applyTransformationMatrix(vector, matrix) {
 	newZ = vector[0] * matrix[0][2] + vector[1] * matrix[1][2] + vector[2] * matrix[2][2] + matrix[3][2];
 	let w = vector[0] * matrix[0][3] + vector[1] * matrix[1][3] + vector[2] * matrix[2][3] + matrix[3][3];
 
-	if(w != 0) {
+	if (w != 0) {
 		newX = newX/w;
 		newY = newY/w;
 		newZ = newZ/w;
@@ -180,32 +180,32 @@ class Face {
 	}
 
 	translate(vector) {
-		for(var i in this.vertices) {
+		for (var i in this.vertices) {
 			this.vertices[i].translate(vector);
 		}
 	}
 
 	transform(matrix) {
-		for(var i in this.vertices) {
+		for (var i in this.vertices) {
 			this.vertices[i].transform(matrix);
 		}
 	}
 
 	rotate(vector, origin) {
-		for(var i in this.vertices) {
+		for (var i in this.vertices) {
 			this.vertices[i].rotate(vector, origin);
 		}
 	}
 
 	getExtremes() {
 		let extremes = [[null, null], [null, null], [null, null]];
-		for(var i in this.vertices) {
-			for(var j in extremes) {
-				if(!extremes[j][0] || extremes[j][0] > this.vertices[i][j]) {
+		for (var i in this.vertices) {
+			for (var j in extremes) {
+				if (!extremes[j][0] || extremes[j][0] > this.vertices[i][j]) {
 					extremes[j][0] = this.vertices[i][j];
 				}
 
-				if(!extremes[j][1] || extremes[j][1] < this.vertices[i][j]) {
+				if (!extremes[j][1] || extremes[j][1] < this.vertices[i][j]) {
 					extremes[j][1] = this.vertices[i][j];
 				}
 			}
@@ -224,8 +224,8 @@ class Face {
 
 	getAverageZ() {
 		let total = 0;
-		for(var i in this.vertices) {
-			total += this.vertices[i].z;
+		for (var i in this.vertices) {
+			total += this.vertices[i].coordinates[2];
 		}
 
 		return total/this.vertices.length;
@@ -241,7 +241,7 @@ class Face {
 
 	copy() {
 		let copyVertices = [];
-		for(var i in this.vertices) {
+		for (var i in this.vertices) {
 			copyVertices.push(this.vertices[i].copy());
 		}
 
@@ -255,19 +255,19 @@ class Body {
 	}
 
 	translate(vector) {
-		for(var i in this.faces) {
+		for (var i in this.faces) {
 			this.faces[i].translate(vector);
 		}
 	}
 
 	transform(matrix) {
-		for(var i in this.faces) {
+		for (var i in this.faces) {
 			this.faces[i].transform(matrix);
 		}
 	}
 
 	rotate(vector, origin) {
-		for(var i in this.faces) {
+		for (var i in this.faces) {
 			this.faces[i].rotate(vector, origin);
 		}
 	}
@@ -275,14 +275,14 @@ class Body {
 	// Look at the extremes and find the average of those
 	getCenter() {
 		let extremes = [[null, null], [null, null], [null, null]];
-		for(var i in this.faces) {
+		for (var i in this.faces) {
 			let faceExtremes = this.faces[i].getExtremes();
-			for(var j in faceExtremes) {
-				if(!extremes[j][0] || extremes[j][0] > faceExtremes[j][0]) {
+			for (var j in faceExtremes) {
+				if (!extremes[j][0] || extremes[j][0] > faceExtremes[j][0]) {
 					extremes[j][0] = faceExtremes[j][0];
 				}
 
-				if(!extremes[j][1] || extremes[j][1] < faceExtremes[j][1]) {
+				if (!extremes[j][1] || extremes[j][1] < faceExtremes[j][1]) {
 					extremes[j][1] = faceExtremes[j][1];
 				}
 			}
@@ -293,7 +293,7 @@ class Body {
 
 	copy() {
 		let copyFaces = [];
-		for(var i in this.faces) {
+		for (var i in this.faces) {
 			copyFaces.push(this.faces[i].copy());
 		}
 
@@ -330,13 +330,13 @@ class Level {
 	}
 
 	translate(vector) {
-		for(var i in this.bodies) {
+		for (var i in this.bodies) {
 			this.bodies[i].translate(vector);
 		}
 	}
 
 	transform(matrix) {
-		for(var i in this.bodies) {
+		for (var i in this.bodies) {
 			this.bodies[i].transform(matrix);
 		}
 	}
@@ -350,7 +350,7 @@ class Level {
 
 	copy() {
 		let copyBodies = [];
-		for(var i in this.bodies) {
+		for (var i in this.bodies) {
 			copyBodies.push(this.bodies[i].copy());
 		}
 
@@ -363,13 +363,13 @@ function renderLevel(level, context, canvasWidth, canvasHeight, camera) {
 	context.fillRect(0, 0, canvasWidth, canvasHeight);
 
 	let facesToDraw = [];
-	for(var i in level.bodies) {
+	for (var i in level.bodies) {
 		let body = level.bodies[i];
-		for(var j in body.faces) {
+		for (let j in body.faces) {
 			let face = body.faces[j];
 			let toCameraVector = vectorSubtract(face.vertices[0].coordinates, camera.position);
 
-			if(vectorDotProduct(face.getNormal(), toCameraVector) < 0) {
+			if (vectorDotProduct(face.getNormal(), toCameraVector) < 0) {
 				let toDraw = face.copy();
 				toDraw.transform(getPointAtMatrix(camera));
 				toDraw.transform(getProjectionMatrix(camera));
@@ -379,9 +379,9 @@ function renderLevel(level, context, canvasWidth, canvasHeight, camera) {
 		}
 	}
 
-	facesToDraw = sort(facesToDraw, function(elem1, elem2) {return elem1.getAverageZ() < elem2.getAverageZ();});
+	facesToDraw.sort(function(elem1, elem2) {return elem2.getAverageZ() - elem1.getAverageZ();});
 	
-	for(var i in facesToDraw) {
+	for (var i in facesToDraw) {
 		let face = facesToDraw[i];
 
 		context.fillStyle = face.getColor(camera['lighting']);
@@ -390,7 +390,7 @@ function renderLevel(level, context, canvasWidth, canvasHeight, camera) {
 		context.beginPath();
 		context.lineTo((face.vertices[0].coordinates[0]+1)*(canvasWidth/2), (face.vertices[0].coordinates[1]+1)*(canvasHeight/2));
 
-		for(var j=0; j<face.vertices.length; j++) {
+		for (var j=0; j<face.vertices.length; j++) {
 			let nextVertex = face.vertices[(j+1)%face.vertices.length];
 
 			context.lineTo((nextVertex.coordinates[0]+1)*(canvasWidth/2), (nextVertex.coordinates[1]+1)*(canvasHeight/2));
