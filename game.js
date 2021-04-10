@@ -1,12 +1,8 @@
 const gameSpeed = 60;
-const canvas = document.getElementById('canvas');
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
-canvas.style.position = 'absolute';
-canvas.style.top = 0;
-canvas.style.left = 0;
-
 var currLevel = 0;
+
+var img = new Image();
+img.src = 'download.jpg';
 
 function render(context, canvasWidth, canvasHeight) {
 	renderLevel(levels[currLevel], context, canvasWidth, canvasHeight, levelCam);
@@ -48,24 +44,38 @@ function tick() {
 	levelCam['lighting'] = vectorNegate(levelCam.look);
 }
 
-function gameLoop(prevWidth, prevHeight) {
+function gameLoop(context, prevWidth, prevHeight) {
+	let canvasWidth;
+	let canvasHeight;
+
 	if (prevWidth != window.innerWidth || prevHeight != window.innerHeight) {
-		canvas.width = window.innerWidth;
-		canvas.height = window.innerHeight;
+		context.canvas.width = window.innerWidth;
+		context.canvas.height = window.innerHeight;
+		canvasWidth = window.innerWidth;
+		canvasHeight = window.innerHeight;
+	} else {
+		canvasWidth = prevWidth;
+		canvasHeight = prevHeight;
 	}
-	let canvasWidth = canvas.width;
-	let canvasHeight = canvas.height;
-	let context = canvas.getContext('2d');
+
 	levelCam['aspectRatio'] = canvasWidth/canvasHeight;
 
 	tick();
 	render(context, canvasWidth, canvasHeight);
 
-	window.requestAnimationFrame(function() {gameLoop(canvasWidth, canvasHeight)});
+	window.requestAnimationFrame(function() {gameLoop(context, canvasWidth, canvasHeight)});
 }
 
 function start() {
-	window.requestAnimationFrame(function() {gameLoop(0, 0)});
+	const canvas = document.getElementById('canvas');
+	canvas.width = window.innerWidth;
+	canvas.height = window.innerHeight;
+	canvas.style.position = 'absolute';
+	canvas.style.top = 0;
+	canvas.style.left = 0;
+	const context = canvas.getContext('2d');
+
+	window.requestAnimationFrame(function() {gameLoop(context, canvas.width, canvas.height)});
 }
 
 start();
