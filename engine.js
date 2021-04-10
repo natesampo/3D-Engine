@@ -41,6 +41,13 @@ function vectorSubtract(vector1, vector2) {
 		vector1[2] - vector2[2]];
 }
 
+function vectorMultiply(vector1, vector2) {
+	return [
+		vector1[0] * vector2[0],
+		vector1[1] * vector2[1],
+		vector1[2] * vector2[2]];
+}
+
 function vectorNormalize(vector) {
 	let magnitude = getMagnitude(vector);
 
@@ -152,6 +159,13 @@ function getProjectionMatrix(camera) {
 		[0, 0, (-camera['zfar'] * camera['znear']) / (camera['zfar'] - camera['znear']), 0]];
 }
 
+function applyViewSpaceTranslation(face, canvasWidth, canvasHeight) {
+	for (var i=0; i<face.vertices.length; i++) {
+		face.vertices[i].translate([1, 1, 0]);
+		face.vertices[i].multiply([canvasWidth/2, canvasHeight/2, 1]);
+	}
+}
+
 function pointToPlaneDistance(point, planePoint, planeNormal) {
 	return vectorDotProduct(point, planeNormal) - vectorDotProduct(planeNormal, planePoint);
 }
@@ -193,7 +207,7 @@ function faceClipAgainstPlane(planePoint, planeNormal, face) {
 			break;
 		case 2:
 			let newVertex = new Vertex(vectorIntersectPlane(planePoint, planeNormal, insidePoints[1], outsidePoints[0]));
-			let newFace = new Face(face.color, [newVertex.copy(), new Vertex(copyArray(insidePoints[0]))]);
+			let newFace = new Face(face.color, [newVertex.copy(), new Vertex(copyArray(insidePoints[0]))], face.drawColor);
 			face.vertices.push(newVertex);
 			newFace.vertices.push(new Vertex(vectorIntersectPlane(planePoint, planeNormal, insidePoints[0], outsidePoints[0])));
 			return [face, newFace];
@@ -216,6 +230,10 @@ class Vertex {
 		applyTransformationMatrix(this.coordinates, matrix);
 	}
 
+	multiply(vector) {
+		this.coordinates = vectorMultiply(this.coordinates, vector);
+	}
+
 	rotate(vector, origin) {
 		this.coordinates = vectorSubtract(this.coordinates, origin);
 		applyTransformationMatrix(this.coordinates, getRotationMatrix(vector));
@@ -233,9 +251,10 @@ class Vertex {
 }
 
 class Face {
-	constructor(color, vertices) {
+	constructor(color, vertices, drawColor) {
 		this.color = color;
 		this.vertices = vertices;
+		this.drawColor = drawColor;
 	}
 
 	translate(vector) {
@@ -290,11 +309,11 @@ class Face {
 		return total/this.vertices.length;
 	}
 
-	getColor(lighting) {
-		let dp = vectorDotProduct(this.getNormal(), lighting);
-		return 'rgba(' + (parseInt(Math.max(this.color['r']*(0.45 + 0.55*dp), this.color['r']/4))).toString() + ', ' +
-			(parseInt(Math.max(this.color['g']*dp, this.color['g']/2))).toString() + ', ' +
-			(parseInt(Math.max(this.color['b']*dp, this.color['b']/2))).toString() + ', ' +
+	setColor(camera) {
+		let dp = Math.max(0.1, vectorDotProduct(this.getNormal(), camera['lighting']));
+		this.drawColor = 'rgba(' + (Math.round(this.color['r'] * dp)).toString() + ', ' +
+			(Math.round(this.color['g'] * dp)).toString() + ', ' +
+			(Math.round(this.color['b'] * dp)).toString() + ', ' +
 			this.color['a'].toString() + ')';
 	}
 
@@ -304,7 +323,7 @@ class Face {
 			copyVertices.push(this.vertices[i].copy());
 		}
 
-		return new Face(this.color, copyVertices);
+		return new Face(this.color, copyVertices, this.drawColor);
 	}
 }
 
@@ -429,11 +448,41 @@ function renderLevel(level, context, canvasWidth, canvasHeight, camera) {
 
 			if (vectorDotProduct(face.getNormal(), toCameraVector) < 0) {
 				let toDraw = face.copy();
+				toDraw.setColor(camera);
 				toDraw.transform(getPointAtMatrix(camera));
 
-				let clippedTriangles = faceClipAgainstPlane([0, 0, 0.2], [0, 0, 1], toDraw);
+				let clippedTriangles = faceClipAgainstPlane([0, 0, 0.1], [0, 0, 1], toDraw);
 				for (var k in clippedTriangles) {
 					clippedTriangles[k].transform(getProjectionMatrix(camera));
+					applyViewSpaceTranslation(clippedTriangles[k], canvasWidth, canvasHeight);
+				}
+
+				for (var k=0; k<4; k++) {
+					for (var l=clippedTriangles.length-1; l>=0; l--) {
+						let newTris = [];
+						switch(k) {
+							case 0:
+								newTris = faceClipAgainstPlane([0, 0, 0], [1, 0, 0], clippedTriangles[l]);
+								break;
+							case 1:
+								newTris = faceClipAgainstPlane([canvasWidth, 0, 0], [-1, 0, 0], clippedTriangles[l]);
+								break;
+							case 2:
+								newTris = faceClipAgainstPlane([0, 0, 0], [0, 1, 0], clippedTriangles[l]);
+								break;
+							case 3:
+								newTris = faceClipAgainstPlane([0, canvasHeight, 0], [0, -1, 0], clippedTriangles[l]);
+								break;
+						}
+
+						for (var m=0; m<newTris.length; m++) {
+							clippedTriangles.push(newTris[m]);
+						}
+						clippedTriangles.splice(l, 1);
+					}
+				}
+
+				for (var k=0; k<clippedTriangles.length; k++) {
 					facesToDraw.push(clippedTriangles[k]);
 
 					if (clippedTriangles[k].getNormal()[2] > 0) {
@@ -451,16 +500,16 @@ function renderLevel(level, context, canvasWidth, canvasHeight, camera) {
 	for (var i in facesToDraw) {
 		let face = facesToDraw[i];
 
-		context.fillStyle = face.getColor(camera['lighting']);
+		context.fillStyle = face.drawColor;
 		context.strokeStyle = 'rgba(30, 30, 30, 1)';
 		context.lineWidth = 4;
 		context.beginPath();
-		context.lineTo((face.vertices[0].coordinates[0] + 1) * (canvasWidth/2), (face.vertices[0].coordinates[1] + 1) * (canvasHeight/2));
+		context.lineTo(face.vertices[0].coordinates[0], face.vertices[0].coordinates[1]);
 
 		for (var j=0; j<face.vertices.length; j++) {
 			let nextVertex = face.vertices[(j + 1) % face.vertices.length];
 
-			context.lineTo((nextVertex.coordinates[0] + 1) * (canvasWidth/2), (nextVertex.coordinates[1] + 1) * (canvasHeight/2));
+			context.lineTo(nextVertex.coordinates[0], nextVertex.coordinates[1]);
 		}
 
 		context.stroke();
