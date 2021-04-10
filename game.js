@@ -15,34 +15,34 @@ function render(context, canvasWidth, canvasHeight) {
 
 function tick() {
 	if (contains(inputs, 'w')) {
-		levelCam.translate(levelCam.look, 0.02);
+		levelCam.translate(vectorScale(levelCam.look, 0.02));
 	}
 	if (contains(inputs, 's')) {
-		levelCam.translate(vectorNegate(levelCam.look), 0.02);
+		levelCam.translate(vectorScale(levelCam.look, -0.02));
 	}
 	if (contains(inputs, 'a')) {
-		levelCam.translate(vectorCrossProduct([0, 1, 0], levelCam.look), 0.02);
+		levelCam.translate(vectorScale(vectorNormalize(vectorCrossProduct([0, 1, 0], levelCam.look)), 0.02));
 	}
 	if (contains(inputs, 'd')) {
-		levelCam.translate(vectorCrossProduct([0, -1, 0], levelCam.look), 0.02);
+		levelCam.translate(vectorScale(vectorNormalize(vectorCrossProduct([0, -1, 0], levelCam.look)), 0.02));
 	}
 	if (contains(inputs, ' ')) {
-		levelCam.translate([0, 1, 0], 0.02);
+		levelCam.translate([0, 0.02, 0]);
 	}
 	if (contains(inputs, 'Shift')) {
-		levelCam.translate([0, -1, 0], 0.02);
+		levelCam.translate([0, -0.02, 0]);
 	}
 	if (contains(inputs, 'ArrowUp')) {
-		levelCam.rotate([1, 0, 0], 1);
+		levelCam.rotate([1, 0, 0]);
 	}
 	if (contains(inputs, 'ArrowDown')) {
-		levelCam.rotate([-1, 0, 0], 1);
+		levelCam.rotate([-1, 0, 0]);
 	}
 	if (contains(inputs, 'ArrowLeft')) {
-		levelCam.rotate([0, 1, 0], 1);
+		levelCam.rotate([0, -1, 0]);
 	}
 	if (contains(inputs, 'ArrowRight')) {
-		levelCam.rotate([0, -1, 0], 1);
+		levelCam.rotate([0, 1, 0]);
 	}
 }
 

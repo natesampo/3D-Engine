@@ -66,10 +66,9 @@ function vectorCrossProduct(vector1, vector2) {
 }
 
 function applyTranslationVector(vector1, vector2) {
-	return [
-		vector1[0] + vector2[0],
-		vector1[1] + vector2[1],
-		vector1[2] + vector2[2]];
+	for (var i in vector1) {
+		vector1[i] += vector2[i];
+	}
 }
 
 function applyMatrixScale(matrix, scale) {
@@ -81,18 +80,16 @@ function applyMatrixScale(matrix, scale) {
 }
 
 function applyTransformationMatrix(vector, matrix) {
-	newX = vector[0] * matrix[0][0] + vector[1] * matrix[1][0] + vector[2] * matrix[2][0] + matrix[3][0];
-	newY = vector[0] * matrix[0][1] + vector[1] * matrix[1][1] + vector[2] * matrix[2][1] + matrix[3][1];
-	newZ = vector[0] * matrix[0][2] + vector[1] * matrix[1][2] + vector[2] * matrix[2][2] + matrix[3][2];
+	vector[0] = vector[0] * matrix[0][0] + vector[1] * matrix[1][0] + vector[2] * matrix[2][0] + matrix[3][0];
+	vector[1] = vector[0] * matrix[0][1] + vector[1] * matrix[1][1] + vector[2] * matrix[2][1] + matrix[3][1];
+	vector[2] = vector[0] * matrix[0][2] + vector[1] * matrix[1][2] + vector[2] * matrix[2][2] + matrix[3][2];
 	let w = vector[0] * matrix[0][3] + vector[1] * matrix[1][3] + vector[2] * matrix[2][3] + matrix[3][3];
 
 	if (w != 0) {
-		newX = newX/w;
-		newY = newY/w;
-		newZ = newZ/w;
+		vector[0] /= w;
+		vector[1] /= w;
+		vector[2] /= w;
 	}
-
-	return [newX, newY, newZ];
 }
 
 // ONLY WORKS FOR THIS SPECIFIC CASE
@@ -150,26 +147,77 @@ function getProjectionMatrix(camera) {
 		[0, 0, (-camera['zfar'] * camera['znear']) / (camera['zfar'] - camera['znear']), 0]];
 }
 
+function pointToPlaneDistance(point, planePoint, planeNormal) {
+	return vectorDotProduct(point, planeNormal) - vectorDotProduct(planeNormal, planePoint);
+}
+
+function vectorIntersectPlane(planePoint, planeNormal, lineStart, lineEnd) {
+	let planeDot = vectorDotProduct(planeNormal, planePoint);
+	let ad = vectorDotProduct(lineStart, planeNormal);
+	let bd = vectorDotProduct(lineEnd, planeNormal);
+	let t = (-planeDot - ad)/(bd - ad);
+	let lineToIntersect = vectorScale(vectorSubtract(lineEnd, lineStart), t);
+	return vectorAddition(lineStart, lineToIntersect);
+}
+
+function faceClipAgainstPlane(planePoint, planeNormal, face) {
+	planeNormal = vectorNormalize(planeNormal);
+
+	let insidePoints = [];
+	let outsidePoints = [];
+
+	for (var i=0; i<face.vertices.length; i++) {
+		if (pointToPlaneDistance(face.vertices[i].coordinates) >= 0) {
+			insidePoints.push(face.vertices[i]);
+		} else {
+			outsidePoints.push(face.vertices[i]);
+			face.vertices.splice(i, 1);
+		}
+	}
+
+	switch(insidePoints.length) {
+		case 0:
+			return [];
+			break
+		case 1:
+			for (var i in outsidePoints) {
+				face.vertices.push(new Vertex(vectorIntersectPlane(planePoint, planeNormal, insidePoints[0].coordinates, outsidePoints[i].coordinates)));
+			}
+			return [face];
+			break;
+		case 2:
+			break;
+		case 3:
+			return [face];
+	}
+}
+
 class Vertex {
-	constructor(x, y, z) {
-		this.coordinates = [x, y, z];
+	constructor(coordinates) {
+		this.coordinates = coordinates;
 	}
 
 	translate(vector) {
-		this.coordinates = applyTranslationVector(this.coordinates, vector);
+		applyTranslationVector(this.coordinates, vector);
 	}
 
 	transform(matrix) {
-		this.coordinates = applyTransformationMatrix(this.coordinates, matrix);
+		applyTransformationMatrix(this.coordinates, matrix);
 	}
 
 	rotate(vector, origin) {
 		this.coordinates = vectorSubtract(this.coordinates, origin);
-		this.coordinates = vectorAddition(origin, applyTransformationMatrix(this.coordinates, getRotationMatrix(vector)));
+		applyTransformationMatrix(this.coordinates, getRotationMatrix(vector));
+		this.coordinates = vectorAddition(this.coordinates, origin);
 	}
 
 	copy() {
-		return new Vertex(this.coordinates[0], this.coordinates[1], this.coordinates[2]);
+		let newCoords = [];
+		for (var i in this.coordinates) {
+			newCoords.push(this.coordinates[i]);
+		}
+
+		return new Vertex(newCoords);
 	}
 }
 
@@ -312,14 +360,13 @@ class Camera {
 		this.lighting = lighting;
 	}
 
-	translate(vector, speed) {
-		vector = vectorScale(vectorNormalize(vector), speed);
-		this.position = applyTranslationVector(this.position, vector);
+	translate(vector) {
+		applyTranslationVector(this.position, vector);
 	}
 
-	rotate(vector, speed, real) {
-		vector = vectorScale(vectorNormalize(vector), speed);
-		this.look = vectorNormalize(applyTransformationMatrix(this.look, getRotationMatrix(vector)));
+	rotate(vector) {
+		applyTransformationMatrix(this.look, getRotationMatrix(vector));
+		this.look = vectorNormalize(this.look);
 	}
 }
 
@@ -388,12 +435,12 @@ function renderLevel(level, context, canvasWidth, canvasHeight, camera) {
 		context.strokeStyle = 'rgba(30, 30, 30, 1)';
 		context.lineWidth = 4;
 		context.beginPath();
-		context.lineTo((face.vertices[0].coordinates[0]+1)*(canvasWidth/2), (face.vertices[0].coordinates[1]+1)*(canvasHeight/2));
+		context.lineTo((face.vertices[0].coordinates[0] + 1) * (canvasWidth/2), (face.vertices[0].coordinates[1] + 1) * (canvasHeight/2));
 
 		for (var j=0; j<face.vertices.length; j++) {
-			let nextVertex = face.vertices[(j+1)%face.vertices.length];
+			let nextVertex = face.vertices[(j + 1) % face.vertices.length];
 
-			context.lineTo((nextVertex.coordinates[0]+1)*(canvasWidth/2), (nextVertex.coordinates[1]+1)*(canvasHeight/2));
+			context.lineTo((nextVertex.coordinates[0] + 1) * (canvasWidth/2), (nextVertex.coordinates[1] + 1) * (canvasHeight/2));
 		}
 
 		context.stroke();
