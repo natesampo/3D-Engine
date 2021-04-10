@@ -33,16 +33,16 @@ function tick() {
 		levelCam.translate([0, -0.02, 0]);
 	}
 	if (contains(inputs, 'ArrowUp')) {
-		levelCam.rotate([1, 0, 0]);
+		levelCam.rotate([0.9, 0, 0]);
 	}
 	if (contains(inputs, 'ArrowDown')) {
-		levelCam.rotate([-1, 0, 0]);
+		levelCam.rotate([-0.9, 0, 0]);
 	}
 	if (contains(inputs, 'ArrowLeft')) {
-		levelCam.rotate([0, -1, 0]);
+		levelCam.rotate([0, -0.9, 0]);
 	}
 	if (contains(inputs, 'ArrowRight')) {
-		levelCam.rotate([0, 1, 0]);
+		levelCam.rotate([0, 0.9, 0]);
 	}
 }
 
