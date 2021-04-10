@@ -7,3 +7,12 @@ function contains(list, item) {
 
 	return false;
 }
+
+function copyArray(arr) {
+	let newArr = [];
+	for (var i in arr) {
+		newArr.push(arr[i]);
+	}
+
+	return newArr;
+}

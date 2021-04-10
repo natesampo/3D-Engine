@@ -166,6 +166,7 @@ function vectorIntersectPlane(planePoint, planeNormal, lineStart, lineEnd, debug
 }
 
 function faceClipAgainstPlane(planePoint, planeNormal, face) {
+	let normal = face.getNormal();
 	planeNormal = vectorNormalize(planeNormal);
 
 	let insidePoints = [];
@@ -185,18 +186,16 @@ function faceClipAgainstPlane(planePoint, planeNormal, face) {
 			return [];
 			break
 		case 1:
-			//console.log(insidePoints);console.log(outsidePoints);console.log(planePoint);throw new l;
-			for (var i in outsidePoints) {
+			for (var i=0; i<outsidePoints.length; i++) {
 				face.vertices.push(new Vertex(vectorIntersectPlane(planePoint, planeNormal, insidePoints[0], outsidePoints[i])));
 			}
-			face.color = {'r': 0, 'g': 255, 'b': 0, 'a': 1};
 			return [face];
 			break;
 		case 2:
-			face.color = {'r': 255, 'g': 255, 'b': 255, 'a': 1};
-			let newFace = face.copy();
-			face.vertices.push(new Vertex(vectorIntersectPlane(planePoint, planeNormal, insidePoints[0], outsidePoints[0])));
-			newFace.vertices.push(new Vertex(vectorIntersectPlane(planePoint, planeNormal, insidePoints[1], outsidePoints[0])));
+			let newVertex = new Vertex(vectorIntersectPlane(planePoint, planeNormal, insidePoints[1], outsidePoints[0]));
+			let newFace = new Face(face.color, [newVertex.copy(), new Vertex(copyArray(insidePoints[0]))]);
+			face.vertices.push(newVertex);
+			newFace.vertices.push(new Vertex(vectorIntersectPlane(planePoint, planeNormal, insidePoints[0], outsidePoints[0])));
 			return [face, newFace];
 			break;
 		case 3:
@@ -432,10 +431,16 @@ function renderLevel(level, context, canvasWidth, canvasHeight, camera) {
 				let toDraw = face.copy();
 				toDraw.transform(getPointAtMatrix(camera));
 
-				let clippedTriangles = faceClipAgainstPlane([0, 0, 1], [0, 0, 1], toDraw);
+				let clippedTriangles = faceClipAgainstPlane([0, 0, 0.2], [0, 0, 1], toDraw);
 				for (var k in clippedTriangles) {
 					clippedTriangles[k].transform(getProjectionMatrix(camera));
 					facesToDraw.push(clippedTriangles[k]);
+
+					if (clippedTriangles[k].getNormal()[2] > 0) {
+						let temp = clippedTriangles[k].vertices[2];
+						clippedTriangles[k].vertices[2] = clippedTriangles[k].vertices[1];
+						clippedTriangles[k].vertices[1] = temp;
+					}
 				}
 			}
 		}
