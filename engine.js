@@ -156,11 +156,11 @@ function pointToPlaneDistance(point, planePoint, planeNormal) {
 	return vectorDotProduct(point, planeNormal) - vectorDotProduct(planeNormal, planePoint);
 }
 
-function vectorIntersectPlane(planePoint, planeNormal, lineStart, lineEnd) {
+function vectorIntersectPlane(planePoint, planeNormal, lineStart, lineEnd, debug) {
 	let planeDot = vectorDotProduct(planeNormal, planePoint);
 	let ad = vectorDotProduct(lineStart, planeNormal);
 	let bd = vectorDotProduct(lineEnd, planeNormal);
-	let t = (-planeDot - ad)/(bd - ad);
+	let t = (planeDot - ad)/(bd - ad);
 	let lineToIntersect = vectorScale(vectorSubtract(lineEnd, lineStart), t);
 	return vectorAddition(lineStart, lineToIntersect);
 }
@@ -171,11 +171,11 @@ function faceClipAgainstPlane(planePoint, planeNormal, face) {
 	let insidePoints = [];
 	let outsidePoints = [];
 
-	for (var i=0; i<face.vertices.length; i++) {
-		if (pointToPlaneDistance(face.vertices[i].coordinates) >= 0) {
-			insidePoints.push(face.vertices[i]);
+	for (var i=face.vertices.length-1; i>=0; i--) {
+		if (pointToPlaneDistance(face.vertices[i].coordinates, planePoint, planeNormal) >= 0) {
+			insidePoints.push(face.vertices[i].coordinates);
 		} else {
-			outsidePoints.push(face.vertices[i]);
+			outsidePoints.push(face.vertices[i].coordinates);
 			face.vertices.splice(i, 1);
 		}
 	}
@@ -185,12 +185,19 @@ function faceClipAgainstPlane(planePoint, planeNormal, face) {
 			return [];
 			break
 		case 1:
+			//console.log(insidePoints);console.log(outsidePoints);console.log(planePoint);throw new l;
 			for (var i in outsidePoints) {
-				face.vertices.push(new Vertex(vectorIntersectPlane(planePoint, planeNormal, insidePoints[0].coordinates, outsidePoints[i].coordinates)));
+				face.vertices.push(new Vertex(vectorIntersectPlane(planePoint, planeNormal, insidePoints[0], outsidePoints[i])));
 			}
+			face.color = {'r': 0, 'g': 255, 'b': 0, 'a': 1};
 			return [face];
 			break;
 		case 2:
+			face.color = {'r': 255, 'g': 255, 'b': 255, 'a': 1};
+			let newFace = face.copy();
+			face.vertices.push(new Vertex(vectorIntersectPlane(planePoint, planeNormal, insidePoints[0], outsidePoints[0])));
+			newFace.vertices.push(new Vertex(vectorIntersectPlane(planePoint, planeNormal, insidePoints[1], outsidePoints[0])));
+			return [face, newFace];
 			break;
 		case 3:
 			return [face];
@@ -417,16 +424,19 @@ function renderLevel(level, context, canvasWidth, canvasHeight, camera) {
 	let facesToDraw = [];
 	for (var i in level.bodies) {
 		let body = level.bodies[i];
-		for (let j in body.faces) {
+		for (var j in body.faces) {
 			let face = body.faces[j];
 			let toCameraVector = vectorSubtract(face.vertices[0].coordinates, camera.position);
 
 			if (vectorDotProduct(face.getNormal(), toCameraVector) < 0) {
 				let toDraw = face.copy();
 				toDraw.transform(getPointAtMatrix(camera));
-				toDraw.transform(getProjectionMatrix(camera));
 
-				facesToDraw.push(toDraw);
+				let clippedTriangles = faceClipAgainstPlane([0, 0, 1], [0, 0, 1], toDraw);
+				for (var k in clippedTriangles) {
+					clippedTriangles[k].transform(getProjectionMatrix(camera));
+					facesToDraw.push(clippedTriangles[k]);
+				}
 			}
 		}
 	}

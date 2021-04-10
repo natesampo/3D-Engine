@@ -15,16 +15,16 @@ function render(context, canvasWidth, canvasHeight) {
 
 function tick() {
 	if (contains(inputs, 'w')) {
-		levelCam.translate(vectorScale(levelCam.look, 0.02));
+		levelCam.translate(vectorScale(levelCam.look, 0.01));
 	}
 	if (contains(inputs, 's')) {
-		levelCam.translate(vectorScale(levelCam.look, -0.02));
+		levelCam.translate(vectorScale(levelCam.look, -0.01));
 	}
 	if (contains(inputs, 'a')) {
-		levelCam.translate(vectorScale(vectorNormalize(vectorCrossProduct([0, 1, 0], levelCam.look)), 0.02));
+		levelCam.translate(vectorScale(vectorNormalize(vectorCrossProduct([0, 1, 0], levelCam.look)), 0.01));
 	}
 	if (contains(inputs, 'd')) {
-		levelCam.translate(vectorScale(vectorNormalize(vectorCrossProduct([0, -1, 0], levelCam.look)), 0.02));
+		levelCam.translate(vectorScale(vectorNormalize(vectorCrossProduct([0, -1, 0], levelCam.look)), 0.01));
 	}
 	if (contains(inputs, ' ')) {
 		levelCam.translate([0, 0.02, 0]);
