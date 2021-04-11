@@ -598,7 +598,7 @@ function textureTriangle(face, newImageData, depthBuffer) {
 
 function renderLevel(level, context, imageData, canvasWidth, canvasHeight, camera) {
 	context.clearRect(0, 0, canvasWidth, canvasHeight);
-	let depthBuffer = Array(canvasWidth*canvasHeight).fill(0);
+	let depthBuffer = new Uint8Array(canvasWidth*canvasHeight);
 
 	context.fillStyle = level.getColor();
 	context.fillRect(0, 0, canvasWidth, canvasHeight);
