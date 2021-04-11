@@ -524,7 +524,7 @@ function textureTriangle(face, newImageData, depthBuffer) {
 			let imageDataIndex = xyToImageDataIndex(startX, j, newImageData.width);
 			for (var k=startX; k<=endX; k++) {
 				if (tw > depthBuffer[imageDataIndex/4]) {
-					updatePixel(newImageData, imageDataIndex, xyToImageDataIndex(Math.round(tx/tw), Math.round(ty/tw), img.width));
+					updatePixel(newImageData, imageDataIndex, xyToImageDataIndex((tx/tw) << 0, (ty/tw) << 0, img.width));
 
 					depthBuffer[imageDataIndex/4] = tw;
 				}
@@ -580,7 +580,7 @@ function textureTriangle(face, newImageData, depthBuffer) {
 			let imageDataIndex = xyToImageDataIndex(startX, j, newImageData.width);
 			for (var k=startX; k<=endX; k++) {
 				if (tw > depthBuffer[imageDataIndex/4]) {
-					updatePixel(newImageData, imageDataIndex, xyToImageDataIndex(Math.round(tx/tw), Math.round(ty/tw), img.width));
+					updatePixel(newImageData, imageDataIndex, xyToImageDataIndex((tx/tw) << 0, (ty/tw) << 0, img.width));
 
 					depthBuffer[imageDataIndex/4] = tw;
 				}
