@@ -518,11 +518,11 @@ function textureTriangle(face, newImageData, depthBuffer) {
 			for (var k=startX; k<=endX; k++) {
 				let tw = (1 - tCurr) * startTw + tCurr * endTw;
 
-				if (!depthBuffer[imageDataIndex] || tw > depthBuffer[imageDataIndex]) {
+				if (tw > depthBuffer[imageDataIndex/4]) {
 					updatePixel(newImageData, imageDataIndex, xyToImageDataIndex(Math.round((((1 - tCurr) * startTx + tCurr * endTx)/tw)*img.width),
 																					Math.round((((1 - tCurr) * startTy + tCurr * endTy)/tw)*img.height), img.width));
 
-					depthBuffer[imageDataIndex] = tw;
+					depthBuffer[imageDataIndex/4] = tw;
 				}
 
 				imageDataIndex += 4;
@@ -568,11 +568,11 @@ function textureTriangle(face, newImageData, depthBuffer) {
 			for (var k=startX; k<=endX; k++) {
 				let tw = (1 - tCurr) * startTw + tCurr * endTw;
 
-				if (!depthBuffer[imageDataIndex] || tw > depthBuffer[imageDataIndex]) {
+				if (tw > depthBuffer[imageDataIndex/4]) {
 					updatePixel(newImageData, imageDataIndex, xyToImageDataIndex(Math.round((((1 - tCurr) * startTx + tCurr * endTx)/tw)*img.width),
 																					Math.round((((1 - tCurr) * startTy + tCurr * endTy)/tw)*img.height), img.width));
 
-					depthBuffer[imageDataIndex] = tw;
+					depthBuffer[imageDataIndex/4] = tw;
 				}
 
 				imageDataIndex += 4;
@@ -586,7 +586,7 @@ function textureTriangle(face, newImageData, depthBuffer) {
 
 function renderLevel(level, context, imageData, canvasWidth, canvasHeight, camera) {
 	context.clearRect(0, 0, canvasWidth, canvasHeight);
-	let depthBuffer = {};
+	let depthBuffer = Array(canvasWidth*canvasHeight).fill(0);
 
 	context.fillStyle = level.getColor();
 	context.fillRect(0, 0, canvasWidth, canvasHeight);
