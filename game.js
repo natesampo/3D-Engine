@@ -1,11 +1,23 @@
 const gameSpeed = 60;
 var currLevel = 0;
 
+var newCanv = document.createElement('canvas');
+var newCont = newCanv.getContext('2d');
+var colors;
 var img = new Image();
+img.onload = function() {
+	newCanv.width = img.width;
+	newCanv.height = img.height;
+	newCont.drawImage(img, 0, 0);
+	colors = newCont.getImageData(0, 0, img.width, img.height).data;
+	start();
+}
 img.src = 'download.jpg';
 
-function render(context, canvasWidth, canvasHeight) {
-	renderLevel(levels[currLevel], context, canvasWidth, canvasHeight, levelCam);
+function render(context, imageData, canvasWidth, canvasHeight, fps) {
+	renderLevel(levels[currLevel], context, imageData, canvasWidth, canvasHeight, levelCam);
+	context.fillStyle = 'rgba(255, 255, 255, 1)';
+	context.fillText('FPS: ' + Math.round(fps), canvasWidth-50, 20);
 }
 
 function tick() {
@@ -44,7 +56,9 @@ function tick() {
 	levelCam['lighting'] = vectorNegate(copyArray(levelCam.look));
 }
 
-function gameLoop(context, prevWidth, prevHeight) {
+function gameLoop(context, imageData, prevWidth, prevHeight, prevTime) {
+	let start = new Date();
+
 	let canvasWidth;
 	let canvasHeight;
 
@@ -61,9 +75,9 @@ function gameLoop(context, prevWidth, prevHeight) {
 	levelCam['aspectRatio'] = canvasWidth/canvasHeight;
 
 	tick();
-	render(context, canvasWidth, canvasHeight);
+	render(context, imageData, canvasWidth, canvasHeight, 1000/(start - prevTime));
 
-	window.requestAnimationFrame(function() {gameLoop(context, canvasWidth, canvasHeight)});
+	window.requestAnimationFrame(function() {gameLoop(context, imageData, canvasWidth, canvasHeight, start)});
 }
 
 function start() {
@@ -74,8 +88,8 @@ function start() {
 	canvas.style.top = 0;
 	canvas.style.left = 0;
 	const context = canvas.getContext('2d');
+	context.imageSmoothingEnabled = false;
+	const imageData = context.createImageData(canvas.width, canvas.height);
 
-	window.requestAnimationFrame(function() {gameLoop(context, canvas.width, canvas.height)});
+	window.requestAnimationFrame(function() {gameLoop(context, imageData, canvas.width, canvas.height, new Date())});
 }
-
-start();

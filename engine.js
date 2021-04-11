@@ -367,11 +367,9 @@ function sortTriangleVerticesByY(face) {
 
 function applyViewSpaceTranslation(face, canvasWidth, canvasHeight) {
 	for (var i=0; i<face.vertices.length; i++) {
-		//console.log(face.vertices[i].coordinates);
 		vectorScale(face.vertices[i].coordinates, -1);
 		face.vertices[i].translate([1, 1, 0, 0]);
 		face.vertices[i].multiply([canvasWidth/2, canvasHeight/2, 1, 0]);
-		//console.log(face.vertices[i].coordinates);
 	}
 }
 
@@ -379,15 +377,26 @@ function clipAndProjectFace(face, canvasWidth, canvasHeight, camera) {
 	let clippedTriangles = faceClipAgainstPlane([0, 0, 0.1, 0], [0, 0, 1, 0], face);
 	for (var k=0; k<clippedTriangles.length; k++) {
 		clippedTriangles[k].transform(getProjectionMatrix(camera));
-		//console.log(clippedTriangles[k].vertices[0].coordinates);
-		if (clippedTriangles[k].vertices[0].coordinates[3] != 0) {vectorScale(clippedTriangles[k].vertices[0].coordinates, 1/clippedTriangles[k].vertices[0].coordinates[3]);}
-		if (clippedTriangles[k].vertices[1].coordinates[3] != 0) {vectorScale(clippedTriangles[k].vertices[1].coordinates, 1/clippedTriangles[k].vertices[1].coordinates[3]);}
-		if (clippedTriangles[k].vertices[2].coordinates[3] != 0) {vectorScale(clippedTriangles[k].vertices[2].coordinates, 1/clippedTriangles[k].vertices[2].coordinates[3]);}
-		//console.log(clippedTriangles[k].vertices[0].coordinates);
+		if (clippedTriangles[k].vertices[0].coordinates[3] != 0) {
+			clippedTriangles[k].vertices[0].textureCoordinates[0] /= clippedTriangles[k].vertices[0].coordinates[3];
+			clippedTriangles[k].vertices[0].textureCoordinates[1] /= clippedTriangles[k].vertices[0].coordinates[3];
+			clippedTriangles[k].vertices[0].textureCoordinates[2] = 1/clippedTriangles[k].vertices[0].coordinates[3];
+			vectorScale(clippedTriangles[k].vertices[0].coordinates, 1/clippedTriangles[k].vertices[0].coordinates[3]);
+		}
+		if (clippedTriangles[k].vertices[1].coordinates[3] != 0) {
+			clippedTriangles[k].vertices[1].textureCoordinates[0] /= clippedTriangles[k].vertices[1].coordinates[3];
+			clippedTriangles[k].vertices[1].textureCoordinates[1] /= clippedTriangles[k].vertices[1].coordinates[3];
+			clippedTriangles[k].vertices[1].textureCoordinates[2] = 1/clippedTriangles[k].vertices[1].coordinates[3];
+			vectorScale(clippedTriangles[k].vertices[1].coordinates, 1/clippedTriangles[k].vertices[1].coordinates[3]);
+		}
+		if (clippedTriangles[k].vertices[2].coordinates[3] != 0) {
+			clippedTriangles[k].vertices[2].textureCoordinates[0] /= clippedTriangles[k].vertices[2].coordinates[3];
+			clippedTriangles[k].vertices[2].textureCoordinates[1] /= clippedTriangles[k].vertices[2].coordinates[3];
+			clippedTriangles[k].vertices[2].textureCoordinates[2] = 1/clippedTriangles[k].vertices[2].coordinates[3];
+			vectorScale(clippedTriangles[k].vertices[2].coordinates, 1/clippedTriangles[k].vertices[2].coordinates[3]);
+		}
 		applyViewSpaceTranslation(clippedTriangles[k], canvasWidth, canvasHeight);
 	}
-	//if(clippedTriangles[0]) {console.log(clippedTriangles[0].vertices[0].coordinates);}
-	//console.log('------');
 
 	for (var k=0; k<4; k++) {
 		for (var l=clippedTriangles.length-1; l>=0; l--) {
@@ -441,9 +450,29 @@ function clipAndProjectLevelBodies(level, canvasWidth, canvasHeight, camera) {
 	return facesToDraw;
 }
 
-function renderLevel(level, context, canvasWidth, canvasHeight, camera) {
+function xyToImageDataIndex(x, y, width) {
+	return y * width * 4 + x * 4;
+}
+
+function imageDataIndexToXY(index, width) {
+	return [(index/4) % width, Math.floor((index/4) / width)];
+}
+
+function renderLevel(level, context, imageData, canvasWidth, canvasHeight, camera) {
 	context.fillStyle = level.getColor();
 	context.fillRect(0, 0, canvasWidth, canvasHeight);
+
+	/*let l = imageData.data.length;
+	for (var i=0; i<l; i++) {
+		if ((i+5)%4) {
+			imageData.data[i] = 40;
+		} else {
+			imageData.data[i] = 150;
+		}
+	}
+	*/
+
+	let newImageData = context.getImageData(0, 0, canvasWidth, canvasHeight);
 
 	let facesToDraw = clipAndProjectLevelBodies(level, canvasWidth, canvasHeight, camera);
 
@@ -467,31 +496,35 @@ function renderLevel(level, context, canvasWidth, canvasHeight, camera) {
 		}
 
 		context.stroke();
-		context.fill();
+		//context.fill();
 		context.closePath();
 
-		/*sortTriangleVerticesByY(face);
+		sortTriangleVerticesByY(face);
 		let dx1 = face.vertices[1].coordinates[0] - face.vertices[0].coordinates[0];
 		let dy1 = face.vertices[1].coordinates[1] - face.vertices[0].coordinates[1];
 		let dtx1 = face.vertices[1].textureCoordinates[0] - face.vertices[0].textureCoordinates[0];
 		let dty1 = face.vertices[1].textureCoordinates[1] - face.vertices[0].textureCoordinates[1];
+		let dtw1 = face.vertices[1].textureCoordinates[2] - face.vertices[0].textureCoordinates[2];
 
 		let dx2 = face.vertices[2].coordinates[0] - face.vertices[0].coordinates[0];
 		let dy2 = face.vertices[2].coordinates[1] - face.vertices[0].coordinates[1];
 		let dtx2 = face.vertices[2].textureCoordinates[0] - face.vertices[0].textureCoordinates[0];
 		let dty2 = face.vertices[2].textureCoordinates[1] - face.vertices[0].textureCoordinates[1];
+		let dtw2 = face.vertices[2].textureCoordinates[2] - face.vertices[0].textureCoordinates[2];
 
 		let xStep1 = ((dy1) ? dx1 / dy1 : 0);
 		let xStep2 = ((dy2) ? dx2 / dy2 : 0);
 
 		let txStep1 = ((dy1) ? dtx1 / dy1 : 0);
 		let tyStep1 = ((dy1) ? dty1 / dy1 : 0);
+		let twStep1 = ((dy1) ? dtw1 / dy1 : 0);
 
 		let txStep2 = ((dy2) ? dtx2 / dy2 : 0);
 		let tyStep2 = ((dy2) ? dty2 / dy2 : 0);
+		let twStep2 = ((dy2) ? dtw2 / dy2 : 0);
 
 		if (dy1) {
-			for (var j=face.vertices[0].coordinates[1]; j<=face.vertices[1].coordinates[1]; j++) {
+			for (var j=Math.round(face.vertices[0].coordinates[1]); j<=face.vertices[1].coordinates[1]; j++) {
 				let stepsTaken1 = j - face.vertices[0].coordinates[1];
 
 				let startX = face.vertices[0].coordinates[0] + stepsTaken1 * xStep1;
@@ -499,25 +532,34 @@ function renderLevel(level, context, canvasWidth, canvasHeight, camera) {
 
 				let startTx = face.vertices[0].textureCoordinates[0] + stepsTaken1 * txStep1;
 				let startTy = face.vertices[0].textureCoordinates[1] + stepsTaken1 * tyStep1;
+				let startTw = face.vertices[0].textureCoordinates[2] + stepsTaken1 * twStep1;
 				let endTx = face.vertices[0].textureCoordinates[0] + stepsTaken1 * txStep2;
 				let endTy = face.vertices[0].textureCoordinates[1] + stepsTaken1 * tyStep2;
+				let endTw = face.vertices[0].textureCoordinates[2] + stepsTaken1 * twStep2;
 
 				if (startX > endX) {
 					[startX, endX] = swap(startX, endX);
 					[startTx, endTx] = swap(startTx, endTx);
 					[startTy, endTy] = swap(startTy, endTy);
+					[startTw, endTw] = swap(startTw, endTw);
 				}
 
 				let tStep = 1/(endX - startX);
 				let tCurr = 0;
 
-				for (var k=startX; k<=endX; k++) {
-					let tx = (1 - tCurr) * startTx + tCurr * endTx;
-					let ty = (1 - tCurr) * startTy + tCurr * endTy;
+				let imageDataIndex = xyToImageDataIndex(Math.round(startX), j, newImageData.width);
+				for (var k=Math.round(startX); k<=endX; k++) {
+					let tw = (1 - tCurr) * startTw + tCurr * endTw;
+					let tx = ((1 - tCurr) * startTx + tCurr * endTx)/tw;
+					let ty = ((1 - tCurr) * startTy + tCurr * endTy)/tw;
 
-					//context.drawImage(img, Math.round(tx*img.width), Math.round(ty*img.height), 1, 1, Math.round(k), Math.round(j), 1, 1);
-					//context.fillRect(Math.round(k), Math.round(j), 1, 1);
+					let ind = xyToImageDataIndex(Math.round(tx*img.width), Math.round(ty*img.height), img.width);
+					newImageData.data[imageDataIndex] = colors[ind];
+					newImageData.data[imageDataIndex+1] = colors[ind+1];
+					newImageData.data[imageDataIndex+2] = colors[ind+2];
+					newImageData.data[imageDataIndex+3] = colors[ind+3];
 
+					imageDataIndex += 4;
 					tCurr += tStep;
 				}
 			}
@@ -527,14 +569,16 @@ function renderLevel(level, context, canvasWidth, canvasHeight, camera) {
 		dy1 = face.vertices[2].coordinates[1] - face.vertices[1].coordinates[1];
 		dtx1 = face.vertices[2].textureCoordinates[0] - face.vertices[1].textureCoordinates[0];
 		dty1 = face.vertices[2].textureCoordinates[1] - face.vertices[1].textureCoordinates[1];
+		dtw1 = face.vertices[2].textureCoordinates[2] - face.vertices[1].textureCoordinates[2];
 
 		xStep1 = ((dy1) ? dx1 / dy1 : 0);
 
 		txStep1 = ((dy1) ? dtx1 / dy1 : 0);
 		tyStep1 = ((dy1) ? dty1 / dy1 : 0);
+		twStep1 = ((dy1) ? dtw1 / dy1 : 0);
 
 		if (dy1) {
-			for (var j=face.vertices[1].coordinates[1]; j<=face.vertices[2].coordinates[1]; j++) {
+			for (var j=Math.round(face.vertices[1].coordinates[1]); j<=face.vertices[2].coordinates[1]; j++) {
 				let stepsTaken1 = j - face.vertices[0].coordinates[1];
 				let stepsTaken2 = j - face.vertices[1].coordinates[1];
 
@@ -543,30 +587,38 @@ function renderLevel(level, context, canvasWidth, canvasHeight, camera) {
 
 				let startTx = face.vertices[1].textureCoordinates[0] + stepsTaken2 * txStep1;
 				let startTy = face.vertices[1].textureCoordinates[1] + stepsTaken2 * tyStep1;
+				let startTw = face.vertices[1].textureCoordinates[2] + stepsTaken2 * twStep1;
 				let endTx = face.vertices[0].textureCoordinates[0] + stepsTaken1 * txStep2;
 				let endTy = face.vertices[0].textureCoordinates[1] + stepsTaken1 * tyStep2;
+				let endTw = face.vertices[0].textureCoordinates[2] + stepsTaken1 * twStep2;
 
 				if (startX > endX) {
 					[startX, endX] = swap(startX, endX);
 					[startTx, endTx] = swap(startTx, endTx);
 					[startTy, endTy] = swap(startTy, endTy);
+					[startTw, endTw] = swap(startTw, endTw);
 				}
 
 				let tStep = 1/(endX - startX);
 				let tCurr = 0;
 
-				for (var k=startX; k<=endX; k++) {
-					let tx = (1 - tCurr) * startTx + tCurr * endTx;
-					let ty = (1 - tCurr) * startTy + tCurr * endTy;
+				let imageDataIndex = xyToImageDataIndex(Math.round(startX), j, newImageData.width);
+				for (var k=Math.round(startX); k<=endX; k++) {
+					let tw = (1 - tCurr) * startTw + tCurr * endTw;
+					let tx = ((1 - tCurr) * startTx + tCurr * endTx)/tw;
+					let ty = ((1 - tCurr) * startTy + tCurr * endTy)/tw;
 
-					//context.drawImage(img, Math.round(tx*img.width), Math.round(ty*img.height), 1, 1, Math.round(k), Math.round(j), 1, 1);
-					//context.fillRect(Math.round(k), Math.round(j), 1, 1);
+					let ind = xyToImageDataIndex(Math.round(tx*img.width), Math.round(ty*img.height), img.width);
+					newImageData.data[imageDataIndex] = colors[ind];
+					newImageData.data[imageDataIndex+1] = colors[ind+1];
+					newImageData.data[imageDataIndex+2] = colors[ind+2];
+					newImageData.data[imageDataIndex+3] = colors[ind+3];
 
+					imageDataIndex += 4;
 					tCurr += tStep;
 				}
 			}
-		}*/
+		}
 	}
-	//console.log(facesToDraw);
-	
+	context.putImageData(newImageData, 0, 0);
 }

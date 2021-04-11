@@ -51,7 +51,7 @@ const levels = [new Level({r: 40, g: 40, b: 40, a: 1}, [
 	])];
 
 const levelCam = new Camera(
-		[0, 0, -2, 0],
+		[0.5, 0, -2, 0],
 		[0, 0, 1, 0],
 		0,
 		70,
