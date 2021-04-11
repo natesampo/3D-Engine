@@ -512,21 +512,27 @@ function textureTriangle(face, newImageData, depthBuffer) {
 			}
 
 			let tStep = 1/(endX - startX);
-			let tCurr = 0;
+
+			let txStep3 = tStep * (endTx - startTx);
+			let tyStep3 = tStep * (endTy - startTy);
+			let twStep3 = tStep * (endTw - startTw);
+
+			let tx = startTx;
+			let ty = startTy;
+			let tw = startTw;
 
 			let imageDataIndex = xyToImageDataIndex(startX, j, newImageData.width);
 			for (var k=startX; k<=endX; k++) {
-				let tw = (1 - tCurr) * startTw + tCurr * endTw;
-
 				if (tw > depthBuffer[imageDataIndex/4]) {
-					updatePixel(newImageData, imageDataIndex, xyToImageDataIndex(Math.round((((1 - tCurr) * startTx + tCurr * endTx)/tw)*img.width),
-																					Math.round((((1 - tCurr) * startTy + tCurr * endTy)/tw)*img.height), img.width));
+					updatePixel(newImageData, imageDataIndex, xyToImageDataIndex(Math.round((tx/tw)*img.width), Math.round((ty/tw)*img.height), img.width));
 
 					depthBuffer[imageDataIndex/4] = tw;
 				}
 
 				imageDataIndex += 4;
-				tCurr += tStep;
+				tx += txStep3;
+				ty += tyStep3;
+				tw += twStep3;
 			}
 		}
 	}
@@ -562,21 +568,27 @@ function textureTriangle(face, newImageData, depthBuffer) {
 			}
 
 			let tStep = 1/(endX - startX);
-			let tCurr = 0;
+			
+			let txStep3 = tStep * (endTx - startTx);
+			let tyStep3 = tStep * (endTy - startTy);
+			let twStep3 = tStep * (endTw - startTw);
+
+			let tx = startTx;
+			let ty = startTy;
+			let tw = startTw;
 
 			let imageDataIndex = xyToImageDataIndex(startX, j, newImageData.width);
 			for (var k=startX; k<=endX; k++) {
-				let tw = (1 - tCurr) * startTw + tCurr * endTw;
-
 				if (tw > depthBuffer[imageDataIndex/4]) {
-					updatePixel(newImageData, imageDataIndex, xyToImageDataIndex(Math.round((((1 - tCurr) * startTx + tCurr * endTx)/tw)*img.width),
-																					Math.round((((1 - tCurr) * startTy + tCurr * endTy)/tw)*img.height), img.width));
+					updatePixel(newImageData, imageDataIndex, xyToImageDataIndex(Math.round((tx/tw)*img.width), Math.round((ty/tw)*img.height), img.width));
 
 					depthBuffer[imageDataIndex/4] = tw;
 				}
 
 				imageDataIndex += 4;
-				tCurr += tStep;
+				tx += txStep3;
+				ty += tyStep3;
+				tw += twStep3;
 			}
 		}
 	}
