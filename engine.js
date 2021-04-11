@@ -513,18 +513,18 @@ function textureTriangle(face, newImageData, depthBuffer) {
 
 			let tStep = 1/(endX - startX);
 
-			let txStep3 = tStep * (endTx - startTx);
-			let tyStep3 = tStep * (endTy - startTy);
+			let txStep3 = tStep * (endTx - startTx) * img.width;
+			let tyStep3 = tStep * (endTy - startTy) * img.height;
 			let twStep3 = tStep * (endTw - startTw);
 
-			let tx = startTx;
-			let ty = startTy;
+			let tx = startTx * img.width;
+			let ty = startTy * img.height;
 			let tw = startTw;
 
 			let imageDataIndex = xyToImageDataIndex(startX, j, newImageData.width);
 			for (var k=startX; k<=endX; k++) {
 				if (tw > depthBuffer[imageDataIndex/4]) {
-					updatePixel(newImageData, imageDataIndex, xyToImageDataIndex(Math.round((tx/tw)*img.width), Math.round((ty/tw)*img.height), img.width));
+					updatePixel(newImageData, imageDataIndex, xyToImageDataIndex(Math.round(tx/tw), Math.round(ty/tw), img.width));
 
 					depthBuffer[imageDataIndex/4] = tw;
 				}
@@ -569,18 +569,18 @@ function textureTriangle(face, newImageData, depthBuffer) {
 
 			let tStep = 1/(endX - startX);
 			
-			let txStep3 = tStep * (endTx - startTx);
-			let tyStep3 = tStep * (endTy - startTy);
+			let txStep3 = tStep * (endTx - startTx) * img.width;
+			let tyStep3 = tStep * (endTy - startTy) * img.height;
 			let twStep3 = tStep * (endTw - startTw);
 
-			let tx = startTx;
-			let ty = startTy;
+			let tx = startTx * img.width;
+			let ty = startTy * img.height;
 			let tw = startTw;
 
 			let imageDataIndex = xyToImageDataIndex(startX, j, newImageData.width);
 			for (var k=startX; k<=endX; k++) {
 				if (tw > depthBuffer[imageDataIndex/4]) {
-					updatePixel(newImageData, imageDataIndex, xyToImageDataIndex(Math.round((tx/tw)*img.width), Math.round((ty/tw)*img.height), img.width));
+					updatePixel(newImageData, imageDataIndex, xyToImageDataIndex(Math.round(tx/tw), Math.round(ty/tw), img.width));
 
 					depthBuffer[imageDataIndex/4] = tw;
 				}
