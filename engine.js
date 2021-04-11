@@ -613,14 +613,19 @@ function renderLevel(level, context, imageData, canvasWidth, canvasHeight, camer
 				let imageDataIndex = xyToImageDataIndex(Math.round(startX), j, newImageData.width);
 				for (var k=Math.round(startX); k<=endX; k++) {
 					let tw = (1 - tCurr) * startTw + tCurr * endTw;
-					let tx = ((1 - tCurr) * startTx + tCurr * endTx)/tw;
-					let ty = ((1 - tCurr) * startTy + tCurr * endTy)/tw;
 
-					let ind = xyToImageDataIndex(Math.round(tx*img.width), Math.round(ty*img.height), img.width);
-					newImageData.data[imageDataIndex] = colors[ind];
-					newImageData.data[imageDataIndex+1] = colors[ind+1];
-					newImageData.data[imageDataIndex+2] = colors[ind+2];
-					newImageData.data[imageDataIndex+3] = colors[ind+3];
+					if (!depthBuffer[imageDataIndex] || tw > depthBuffer[imageDataIndex]) {
+						let tx = ((1 - tCurr) * startTx + tCurr * endTx)/tw;
+						let ty = ((1 - tCurr) * startTy + tCurr * endTy)/tw;
+
+						let ind = xyToImageDataIndex(Math.round(tx*img.width), Math.round(ty*img.height), img.width);
+						newImageData.data[imageDataIndex] = colors[ind];
+						newImageData.data[imageDataIndex+1] = colors[ind+1];
+						newImageData.data[imageDataIndex+2] = colors[ind+2];
+						newImageData.data[imageDataIndex+3] = colors[ind+3];
+
+						depthBuffer[imageDataIndex] = tw;
+					}
 
 					imageDataIndex += 4;
 					tCurr += tStep;
