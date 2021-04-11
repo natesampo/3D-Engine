@@ -1,4 +1,3 @@
-
 class Vertex {
 	constructor(coordinates, textureCoordinates) {
 		this.coordinates = coordinates;
@@ -6,7 +5,7 @@ class Vertex {
 	}
 
 	translate(vector) {
-		applyTranslationVector(this.coordinates, vector);
+		vectorAdd(this.coordinates, vector);
 	}
 
 	transform(matrix) {
@@ -14,25 +13,16 @@ class Vertex {
 	}
 
 	multiply(vector) {
-		this.coordinates = vectorMultiply(this.coordinates, vector);
+		vectorMultiply(this.coordinates, vector);
 	}
 
 	rotate(vector, origin) {
-		this.coordinates = vectorSubtract(this.coordinates, origin);
-		applyTransformationMatrix(this.coordinates, getRotationMatrix(vector));
-		this.coordinates = vectorAdd(this.coordinates, origin);
+		vectorAdd(applyTransformationMatrix(vectorSubtract(this.coordinates, origin), getRotationMatrix(vector)), origin);
 	}
 
 	copy() {
-		let newCoords = [];
-		for (var i=0; i<this.coordinates.length; i++) {
-			newCoords.push(this.coordinates[i]);
-		}
-
-		let newTextureCoords = [];
-		for (var i=0; i<this.textureCoordinates.length; i++) {
-			newTextureCoords.push(this.textureCoordinates[i]);
-		}
+		let newCoords = copyArray(this.coordinates);
+		let newTextureCoords = copyArray(this.textureCoordinates);
 
 		return new Vertex(newCoords, newTextureCoords);
 	}
@@ -63,16 +53,22 @@ class Face {
 		}
 	}
 
+	scale(factor) {
+		for (var i=0; i<this.vertices.length; i++) {
+			vectorScale(this.vertices[i].coordinates, factor);
+		}
+	}
+
 	getExtremes() {
 		let extremes = [[null, null], [null, null], [null, null]];
 		for (var i=0; i<this.vertices.length; i++) {
 			for (var j=0; j<extremes.length; j++) {
-				if (!extremes[j][0] || extremes[j][0] > this.vertices[i][j]) {
-					extremes[j][0] = this.vertices[i][j];
+				if (!extremes[j][0] || extremes[j][0] > this.vertices[i].coordinates[j]) {
+					extremes[j][0] = this.vertices[i].coordinates[j];
 				}
 
-				if (!extremes[j][1] || extremes[j][1] < this.vertices[i][j]) {
-					extremes[j][1] = this.vertices[i][j];
+				if (!extremes[j][1] || extremes[j][1] < this.vertices[i].coordinates[j]) {
+					extremes[j][1] = this.vertices[i].coordinates[j];
 				}
 			}
 		}
@@ -81,11 +77,10 @@ class Face {
 	}
 
 	getNormal() {
-		let vector1 = vectorSubtract(this.vertices[1].coordinates, this.vertices[0].coordinates);
-		let vector2 = vectorSubtract(this.vertices[2].coordinates, this.vertices[0].coordinates);
-		let normal = vectorNormalize(vectorCrossProduct(vector1, vector2));
+		let vector1 = vectorSubtract(copyArray(this.vertices[1].coordinates), this.vertices[0].coordinates);
+		let vector2 = vectorSubtract(copyArray(this.vertices[2].coordinates), this.vertices[0].coordinates);
 
-		return normal;
+		return vectorNormalize(vectorCrossProduct(vector1, vector2));
 	}
 
 	getAverageZ() {
@@ -134,6 +129,12 @@ class Body {
 		}
 	}
 
+	scale(factor) {
+		for (var i=0; i<this.faces.length; i++) {
+			this.faces[i].scale(factor);
+		}
+	}
+
 	// Look at the extremes and find the average of those
 	getCenter() {
 		let extremes = [[null, null], [null, null], [null, null]];
@@ -175,12 +176,11 @@ class Camera {
 	}
 
 	translate(vector) {
-		applyTranslationVector(this.position, vector);
+		vectorAdd(this.position, vector);
 	}
 
 	rotate(vector) {
-		applyTransformationMatrix(this.look, getRotationMatrix(vector));
-		this.look = vectorNormalize(this.look);
+		vectorNormalize(applyTransformationMatrix(this.look, getRotationMatrix(vector)));
 	}
 }
 
@@ -219,6 +219,22 @@ class Level {
 	}
 }
 
+
+function applyTransformationMatrix(vector, matrix) {
+	let newVector = [0, 0, 0, 0];
+	newVector[0] = vector[0] * matrix[0][0] + vector[1] * matrix[1][0] + vector[2] * matrix[2][0] + vector[3] * matrix[3][0];
+	newVector[1] = vector[0] * matrix[0][1] + vector[1] * matrix[1][1] + vector[2] * matrix[2][1] + vector[3] * matrix[3][1];
+	newVector[2] = vector[0] * matrix[0][2] + vector[1] * matrix[1][2] + vector[2] * matrix[2][2] + vector[3] * matrix[3][2];
+	newVector[3] = vector[0] * matrix[0][3] + vector[1] * matrix[1][3] + vector[2] * matrix[2][3] + vector[3] * matrix[3][3];
+
+	vector[0] = newVector[0];
+	vector[1] = newVector[1];
+	vector[2] = newVector[2];
+	vector[3] = newVector[3];
+
+	return vector;
+}
+
 // ONLY WORKS FOR THIS SPECIFIC CASE
 function getInverseMatrix(matrix) {
 	return [
@@ -251,10 +267,10 @@ function getRotationMatrix(vector) {
 }
 
 function getPointAtMatrix(camera) {
-	let up = [0, 1, 0];
+	let up = [0, 1, 0, 0];
 
 	let newForward = camera.look;
-	let newUp = vectorNormalize(vectorSubtract(vectorScale(newForward, vectorDotProduct(up, newForward)), up));
+	let newUp = vectorNormalize(vectorSubtract(vectorScale(copyArray(newForward), vectorDotProduct(up, newForward)), up));
 	let newRight = vectorCrossProduct(newUp, newForward);
 
 	return getInverseMatrix([
@@ -274,13 +290,6 @@ function getProjectionMatrix(camera) {
 		[0, 0, (-camera['zfar'] * camera['znear']) / (camera['zfar'] - camera['znear']), 0]];
 }
 
-function applyViewSpaceTranslation(face, canvasWidth, canvasHeight) {
-	for (var i=0; i<face.vertices.length; i++) {
-		face.vertices[i].translate([1, 1, 0]);
-		face.vertices[i].multiply([canvasWidth/2, canvasHeight/2, 1]);
-	}
-}
-
 function pointToPlaneDistance(point, planePoint, planeNormal) {
 	return vectorDotProduct(point, planeNormal) - vectorDotProduct(planeNormal, planePoint);
 }
@@ -293,12 +302,11 @@ function vectorIntersectPlanePortion(planePoint, planeNormal, lineStart, lineEnd
 }
 
 function getPointAtPortionOfLine(lineStart, lineEnd, portion) {
-	return vectorAdd(lineStart, vectorScale(vectorSubtract(lineEnd, lineStart), portion));
+	return vectorAdd(copyArray(lineStart), vectorScale(vectorSubtract(copyArray(lineEnd), lineStart), portion));
 }
 
 function faceClipAgainstPlane(planePoint, planeNormal, face) {
-	let normal = face.getNormal();
-	planeNormal = vectorNormalize(planeNormal);
+	vectorNormalize(planeNormal);
 
 	let insidePoints = [];
 	let outsidePoints = [];
@@ -357,28 +365,45 @@ function sortTriangleVerticesByY(face) {
 	}
 }
 
+function applyViewSpaceTranslation(face, canvasWidth, canvasHeight) {
+	for (var i=0; i<face.vertices.length; i++) {
+		//console.log(face.vertices[i].coordinates);
+		vectorScale(face.vertices[i].coordinates, -1);
+		face.vertices[i].translate([1, 1, 0, 0]);
+		face.vertices[i].multiply([canvasWidth/2, canvasHeight/2, 1, 0]);
+		//console.log(face.vertices[i].coordinates);
+	}
+}
+
 function clipAndProjectFace(face, canvasWidth, canvasHeight, camera) {
-	let clippedTriangles = faceClipAgainstPlane([0, 0, 0.1], [0, 0, 1], face);
+	let clippedTriangles = faceClipAgainstPlane([0, 0, 0.1, 0], [0, 0, 1, 0], face);
 	for (var k=0; k<clippedTriangles.length; k++) {
 		clippedTriangles[k].transform(getProjectionMatrix(camera));
+		//console.log(clippedTriangles[k].vertices[0].coordinates);
+		if (clippedTriangles[k].vertices[0].coordinates[3] != 0) {vectorScale(clippedTriangles[k].vertices[0].coordinates, 1/clippedTriangles[k].vertices[0].coordinates[3]);}
+		if (clippedTriangles[k].vertices[1].coordinates[3] != 0) {vectorScale(clippedTriangles[k].vertices[1].coordinates, 1/clippedTriangles[k].vertices[1].coordinates[3]);}
+		if (clippedTriangles[k].vertices[2].coordinates[3] != 0) {vectorScale(clippedTriangles[k].vertices[2].coordinates, 1/clippedTriangles[k].vertices[2].coordinates[3]);}
+		//console.log(clippedTriangles[k].vertices[0].coordinates);
 		applyViewSpaceTranslation(clippedTriangles[k], canvasWidth, canvasHeight);
 	}
+	//if(clippedTriangles[0]) {console.log(clippedTriangles[0].vertices[0].coordinates);}
+	//console.log('------');
 
 	for (var k=0; k<4; k++) {
 		for (var l=clippedTriangles.length-1; l>=0; l--) {
 			let newTris = [];
 			switch(k) {
 				case 0:
-					newTris = faceClipAgainstPlane([0, 0, 0], [1, 0, 0], clippedTriangles[l]);
+					newTris = faceClipAgainstPlane([0, 0, 0, 0], [1, 0, 0, 0], clippedTriangles[l]);
 					break;
 				case 1:
-					newTris = faceClipAgainstPlane([canvasWidth - 1, 0, 0], [-1, 0, 0], clippedTriangles[l]);
+					newTris = faceClipAgainstPlane([canvasWidth - 1, 0, 0, 0], [-1, 0, 0, 0], clippedTriangles[l]);
 					break;
 				case 2:
-					newTris = faceClipAgainstPlane([0, 0, 0], [0, 1, 0], clippedTriangles[l]);
+					newTris = faceClipAgainstPlane([0, 0, 0, 0], [0, 1, 0, 0], clippedTriangles[l]);
 					break;
 				case 3:
-					newTris = faceClipAgainstPlane([0, canvasHeight - 1, 0], [0, -1, 0], clippedTriangles[l]);
+					newTris = faceClipAgainstPlane([0, canvasHeight - 1, 0, 0], [0, -1, 0, 0], clippedTriangles[l]);
 					break;
 			}
 
@@ -398,7 +423,7 @@ function clipAndProjectLevelBodies(level, canvasWidth, canvasHeight, camera) {
 		let body = level.bodies[i];
 		for (var j=0; j<body.faces.length; j++) {
 			let face = body.faces[j];
-			let toCameraVector = vectorSubtract(face.vertices[0].coordinates, camera.position);
+			let toCameraVector = vectorSubtract(copyArray(face.vertices[0].coordinates), camera.position);
 
 			if (vectorDotProduct(face.getNormal(), toCameraVector) < 0) {
 				let toDraw = face.copy();
@@ -442,10 +467,10 @@ function renderLevel(level, context, canvasWidth, canvasHeight, camera) {
 		}
 
 		context.stroke();
-		//context.fill();
+		context.fill();
 		context.closePath();
 
-		sortTriangleVerticesByY(face);
+		/*sortTriangleVerticesByY(face);
 		let dx1 = face.vertices[1].coordinates[0] - face.vertices[0].coordinates[0];
 		let dy1 = face.vertices[1].coordinates[1] - face.vertices[0].coordinates[1];
 		let dtx1 = face.vertices[1].textureCoordinates[0] - face.vertices[0].textureCoordinates[0];
@@ -490,7 +515,7 @@ function renderLevel(level, context, canvasWidth, canvasHeight, camera) {
 					let tx = (1 - tCurr) * startTx + tCurr * endTx;
 					let ty = (1 - tCurr) * startTy + tCurr * endTy;
 
-					context.drawImage(img, Math.round(tx*img.width), Math.round(ty*img.height), 1, 1, Math.round(k), Math.round(j), 1, 1);
+					//context.drawImage(img, Math.round(tx*img.width), Math.round(ty*img.height), 1, 1, Math.round(k), Math.round(j), 1, 1);
 					//context.fillRect(Math.round(k), Math.round(j), 1, 1);
 
 					tCurr += tStep;
@@ -534,12 +559,14 @@ function renderLevel(level, context, canvasWidth, canvasHeight, camera) {
 					let tx = (1 - tCurr) * startTx + tCurr * endTx;
 					let ty = (1 - tCurr) * startTy + tCurr * endTy;
 
-					context.drawImage(img, Math.round(tx*img.width), Math.round(ty*img.height), 1, 1, Math.round(k), Math.round(j), 1, 1);
+					//context.drawImage(img, Math.round(tx*img.width), Math.round(ty*img.height), 1, 1, Math.round(k), Math.round(j), 1, 1);
 					//context.fillRect(Math.round(k), Math.round(j), 1, 1);
 
 					tCurr += tStep;
 				}
 			}
-		}
+		}*/
 	}
+	//console.log(facesToDraw);
+	
 }
