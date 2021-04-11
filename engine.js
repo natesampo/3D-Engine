@@ -465,7 +465,7 @@ function updatePixel(newImageData, imageDataIndex, textureDataIndex) {
 	newImageData.data[imageDataIndex+3] = colors[textureDataIndex+3];
 }
 
-function textureTriangle(face, newImageData, depthBuffer) {
+function textureTriangle(face, newImageData, depthBuffer, canvasWidth, imgData) {
 	sortTriangleVerticesByY(face);
 
 	let vertex1 = face.vertices[0].coordinates;
@@ -491,11 +491,11 @@ function textureTriangle(face, newImageData, depthBuffer) {
 	let twStep2 = ((dy2) ? (textureVertex3[2] - textureVertex1[2]) / dy2 : 0);
 
 	if (dy1) {
-		for (var j=Math.round(vertex1[1]); j<=vertex2[1]; j++) {
+		for (var j=vertex1[1] << 0; j<=vertex2[1]; j++) {
 			let stepsTaken1 = j - vertex1[1];
 
-			let startX = Math.round(vertex1[0] + stepsTaken1 * xStep1);
-			let endX = Math.round(vertex1[0] + stepsTaken1 * xStep2);
+			let startX = vertex1[0] + stepsTaken1 * xStep1 << 0;
+			let endX = vertex1[0] + stepsTaken1 * xStep2 << 0;
 
 			let startTx = textureVertex1[0] + stepsTaken1 * txStep1;
 			let startTy = textureVertex1[1] + stepsTaken1 * tyStep1;
@@ -521,15 +521,17 @@ function textureTriangle(face, newImageData, depthBuffer) {
 			let ty = startTy * img.height;
 			let tw = startTw;
 
-			let imageDataIndex = xyToImageDataIndex(startX, j, newImageData.width);
+			//let imageDataIndex = xyToImageDataIndex(startX, j, newImageData.width);
 			for (var k=startX; k<=endX; k++) {
-				if (tw > depthBuffer[imageDataIndex/4]) {
-					updatePixel(newImageData, imageDataIndex, xyToImageDataIndex((tx/tw) << 0, (ty/tw) << 0, img.width));
+				let ind = j * canvasWidth + k;
+				if (tw > depthBuffer[ind]) {
+					newImageData[ind] = imgData[(ty/tw << 0) * img.width + (tx/tw << 0)];
+					//updatePixel(newImageData, imageDataIndex, xyToImageDataIndex(tx/tw << 0, ty/tw << 0, img.width));
 
-					depthBuffer[imageDataIndex/4] = tw;
+					depthBuffer[ind] = tw;
 				}
 
-				imageDataIndex += 4;
+				//imageDataIndex += 4;
 				tx += txStep3;
 				ty += tyStep3;
 				tw += twStep3;
@@ -546,12 +548,12 @@ function textureTriangle(face, newImageData, depthBuffer) {
 	twStep1 = ((dy1) ? (textureVertex3[2] - textureVertex2[2]) / dy1 : 0);
 
 	if (dy1) {
-		for (var j=Math.round(vertex2[1]); j<=vertex3[1]; j++) {
+		for (var j=vertex2[1] << 0; j<=vertex3[1]; j++) {
 			let stepsTaken1 = j - vertex1[1];
 			let stepsTaken2 = j - vertex2[1];
 
-			let startX = Math.round(vertex2[0] + stepsTaken2 * xStep1);
-			let endX = Math.round(vertex1[0] + stepsTaken1 * xStep2);
+			let startX = vertex2[0] + stepsTaken2 * xStep1 << 0;
+			let endX = vertex1[0] + stepsTaken1 * xStep2 << 0;
 
 			let startTx = textureVertex2[0] + stepsTaken2 * txStep1;
 			let startTy = textureVertex2[1] + stepsTaken2 * tyStep1;
@@ -577,15 +579,17 @@ function textureTriangle(face, newImageData, depthBuffer) {
 			let ty = startTy * img.height;
 			let tw = startTw;
 
-			let imageDataIndex = xyToImageDataIndex(startX, j, newImageData.width);
+			//let imageDataIndex = xyToImageDataIndex(startX, j, newImageData.width);
 			for (var k=startX; k<=endX; k++) {
-				if (tw > depthBuffer[imageDataIndex/4]) {
-					updatePixel(newImageData, imageDataIndex, xyToImageDataIndex((tx/tw) << 0, (ty/tw) << 0, img.width));
+				let ind = j * canvasWidth + k;
+				if (tw > depthBuffer[ind]) {
+					newImageData[ind] = imgData[(ty/tw << 0) * img.width + (tx/tw << 0)];
+					//updatePixel(newImageData, imageDataIndex, xyToImageDataIndex(tx/tw << 0, ty/tw << 0, img.width));
 
-					depthBuffer[imageDataIndex/4] = tw;
+					depthBuffer[ind] = tw;
 				}
 
-				imageDataIndex += 4;
+				//imageDataIndex += 4;
 				tx += txStep3;
 				ty += tyStep3;
 				tw += twStep3;
@@ -603,7 +607,13 @@ function renderLevel(level, context, imageData, canvasWidth, canvasHeight, camer
 	context.fillStyle = level.getColor();
 	context.fillRect(0, 0, canvasWidth, canvasHeight);
 
-	let newImageData = context.getImageData(0, 0, canvasWidth, canvasHeight);
+	let buf = new ArrayBuffer(imageData.data.length);
+	let buf8 = new Uint8ClampedArray(buf);
+	let data = new Uint32Array(buf);
+
+	let data2 = new Uint32Array(colors.buffer);
+
+	//let newImageData = context.getImageData(0, 0, canvasWidth, canvasHeight);
 
 	let facesToDraw = clipAndProjectLevelBodies(level, canvasWidth, canvasHeight, camera);
 
@@ -611,7 +621,7 @@ function renderLevel(level, context, imageData, canvasWidth, canvasHeight, camer
 	for (var i=0; i<facesToDraw.length; i++) {
 		let face = facesToDraw[i];
 
-		context.fillStyle = 'rgba(' + (Math.round(face.color['r'] * face.lightLevel)).toString() + ', ' +
+		/*context.fillStyle = 'rgba(' + (Math.round(face.color['r'] * face.lightLevel)).toString() + ', ' +
 										(Math.round(face.color['g'] * face.lightLevel)).toString() + ', ' +
 										(Math.round(face.color['b'] * face.lightLevel)).toString() + ', ' +
 										face.color['a'].toString() + ')';
@@ -628,10 +638,13 @@ function renderLevel(level, context, imageData, canvasWidth, canvasHeight, camer
 
 		context.stroke();
 		//context.fill();
-		context.closePath();
+		context.closePath();*/
 
-		textureTriangle(face, newImageData, depthBuffer);
+		textureTriangle(face, data, depthBuffer, canvasWidth, data2);
 	}
 
-	context.putImageData(newImageData, 0, 0);
+	imageData.data.set(buf8);
+
+	context.putImageData(imageData, 0, 0);
+	//context.drawImage(imageData, 0, 0);
 }
