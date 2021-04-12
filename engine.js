@@ -448,21 +448,6 @@ function clipAndProjectLevelBodies(level, canvasWidth, canvasHeight, camera) {
 	return facesToDraw;
 }
 
-function xyToImageDataIndex(x, y, width) {
-	return y * width * 4 + x * 4;
-}
-
-function imageDataIndexToXY(index, width) {
-	return [(index/4) % width, Math.floor((index/4) / width)];
-}
-
-function updatePixel(newImageData, imageDataIndex, textureDataIndex) {
-	newImageData.data[imageDataIndex] = colors[textureDataIndex];
-	newImageData.data[imageDataIndex+1] = colors[textureDataIndex+1];
-	newImageData.data[imageDataIndex+2] = colors[textureDataIndex+2];
-	newImageData.data[imageDataIndex+3] = colors[textureDataIndex+3];
-}
-
 function textureTriangle(face, newImageData, depthBuffer, canvasWidth, imgData) {
 	sortTriangleVerticesByY(face);
 
@@ -490,106 +475,120 @@ function textureTriangle(face, newImageData, depthBuffer, canvasWidth, imgData) 
 
 	let imgWidth = img.width;
 
+	let startX = vertex1[0];
+	let startTx = textureVertex1[0];
+	let startTy = textureVertex1[1];
+	let startTw = textureVertex1[2];
+	let endX = startX;
+	let endTx = startTx;
+	let endTy = startTy;
+	let endTw = startTw;
+
+	if (vertex2[0] > vertex3[0]) {
+		[xStep1, xStep2] = swap(xStep1, xStep2);
+		[txStep1, txStep2] = swap(txStep1, txStep2);
+		[tyStep1, tyStep2] = swap(tyStep1, tyStep2);
+		[twStep1, twStep2] = swap(twStep1, twStep2);
+	}
+
 	if (dy1 > 1 && dy2 > 1) {
 		for (var j=vertex1[1] << 0; j<=vertex2[1]; j++) {
-			let stepsTaken1 = j - vertex1[1];
+			if (startX != endX) {
+				let tStep = 1/(endX - startX);
 
-			let startX = vertex1[0] + stepsTaken1 * xStep1 << 0;
-			let endX = vertex1[0] + stepsTaken1 * xStep2 << 0;
+				let txStep3 = tStep * (endTx - startTx) * img.width;
+				let tyStep3 = tStep * (endTy - startTy) * img.height;
+				let twStep3 = tStep * (endTw - startTw);
 
-			let startTx = textureVertex1[0] + stepsTaken1 * txStep1;
-			let startTy = textureVertex1[1] + stepsTaken1 * tyStep1;
-			let startTw = textureVertex1[2] + stepsTaken1 * twStep1;
-			let endTx = textureVertex1[0] + stepsTaken1 * txStep2;
-			let endTy = textureVertex1[1] + stepsTaken1 * tyStep2;
-			let endTw = textureVertex1[2] + stepsTaken1 * twStep2;
+				let tx = startTx * img.width;
+				let ty = startTy * img.height;
+				let tw = startTw;
+				let ind = j * canvasWidth + startX << 0;
 
-			if (startX > endX) {
-				[startX, endX] = swap(startX, endX);
-				[startTx, endTx] = swap(startTx, endTx);
-				[startTy, endTy] = swap(startTy, endTy);
-				[startTw, endTw] = swap(startTw, endTw);
-			}
+				for (var k=startX; k<=endX; k++) {
+					if (tw > depthBuffer[ind]) {
+						newImageData[ind] = imgData[(ty/tw << 0) * imgWidth + (tx/tw << 0)];
 
-			let tStep = 1/(endX - startX);
+						depthBuffer[ind] = tw;
+					}
 
-			let txStep3 = tStep * (endTx - startTx) * img.width;
-			let tyStep3 = tStep * (endTy - startTy) * img.height;
-			let twStep3 = tStep * (endTw - startTw);
-
-			let tx = startTx * img.width;
-			let ty = startTy * img.height;
-			let tw = startTw;
-			let ind = j * canvasWidth + startX;
-
-			for (var k=startX; k<=endX; k++) {
-				if (tw > depthBuffer[ind]) {
-					newImageData[ind] = imgData[(ty/tw << 0) * imgWidth + (tx/tw << 0)];
-
-					depthBuffer[ind] = tw;
+					tx += txStep3;
+					ty += tyStep3;
+					tw += twStep3;
+					ind++;
 				}
-
-				tx += txStep3;
-				ty += tyStep3;
-				tw += twStep3;
-				ind++;
 			}
+
+			startX += xStep1;
+			startTx += txStep1;
+			startTy += tyStep1;
+			startTw += twStep1;
+			endX += xStep2;
+			endTx += txStep2;
+			endTy += tyStep2;
+			endTw += twStep2;
 		}
 	}
 
 	dy1 = vertex3[1] - vertex2[1];
 
-	xStep1 = ((dy1) ? (vertex3[0] - vertex2[0]) / dy1 : 0);
+	if (vertex3[0] > vertex2[0]) {
+		xStep1 = ((dy1) ? (vertex3[0] - vertex2[0]) / dy1 : 0);
+		txStep1 = ((dy1) ? (textureVertex3[0] - textureVertex2[0]) / dy1 : 0);
+		tyStep1 = ((dy1) ? (textureVertex3[1] - textureVertex2[1]) / dy1 : 0);
+		twStep1 = ((dy1) ? (textureVertex3[2] - textureVertex2[2]) / dy1 : 0);
+	} else {
+		xStep2 = ((dy1) ? (vertex3[0] - vertex2[0]) / dy1 : 0);
+		txStep2 = ((dy1) ? (textureVertex3[0] - textureVertex2[0]) / dy1 : 0);
+		tyStep2 = ((dy1) ? (textureVertex3[1] - textureVertex2[1]) / dy1 : 0);
+		twStep2 = ((dy1) ? (textureVertex3[2] - textureVertex2[2]) / dy1 : 0);
+	}
 
-	txStep1 = ((dy1) ? (textureVertex3[0] - textureVertex2[0]) / dy1 : 0);
-	tyStep1 = ((dy1) ? (textureVertex3[1] - textureVertex2[1]) / dy1 : 0);
-	twStep1 = ((dy1) ? (textureVertex3[2] - textureVertex2[2]) / dy1 : 0);
+	startX = vertex2[0];
+	startTx = textureVertex2[0];
+	startTy = textureVertex2[1];
+	startTw = textureVertex2[2];
+	endX = vertex1[0];
+	endTx = textureVertex1[0] + (vertex2[1] - vertex1[1]) * txStep2;
+	endTy = textureVertex1[1] + (vertex2[1] - vertex1[1]) * tyStep2;
+	endTw = textureVertex1[2] + (vertex2[1] - vertex1[1]) * twStep2;
 
 	if (dy1 > 1 && dy2 > 1) {
 		for (var j=vertex2[1] << 0; j<=vertex3[1]; j++) {
-			let stepsTaken1 = j - vertex1[1];
-			let stepsTaken2 = j - vertex2[1];
+			if (startX != endX) {
+				let tStep = 1/(endX - startX);
+				
+				let txStep3 = tStep * (endTx - startTx) * img.width;
+				let tyStep3 = tStep * (endTy - startTy) * img.height;
+				let twStep3 = tStep * (endTw - startTw);
 
-			let startX = vertex2[0] + stepsTaken2 * xStep1 << 0;
-			let endX = vertex1[0] + stepsTaken1 * xStep2 << 0;
+				let tx = startTx * img.width;
+				let ty = startTy * img.height;
+				let tw = startTw;
+				let ind = j * canvasWidth + startX << 0;
 
-			let startTx = textureVertex2[0] + stepsTaken2 * txStep1;
-			let startTy = textureVertex2[1] + stepsTaken2 * tyStep1;
-			let startTw = textureVertex2[2] + stepsTaken2 * twStep1;
-			let endTx = textureVertex1[0] + stepsTaken1 * txStep2;
-			let endTy = textureVertex1[1] + stepsTaken1 * tyStep2;
-			let endTw = textureVertex1[2] + stepsTaken1 * twStep2;
+				for (var k=startX; k<=endX; k++) {
+					if (tw > depthBuffer[ind]) {
+						newImageData[ind] = imgData[(ty/tw << 0) * imgWidth + (tx/tw << 0)];
 
-			if (startX > endX) {
-				[startX, endX] = swap(startX, endX);
-				[startTx, endTx] = swap(startTx, endTx);
-				[startTy, endTy] = swap(startTy, endTy);
-				[startTw, endTw] = swap(startTw, endTw);
-			}
+						depthBuffer[ind] = tw;
+					}
 
-			let tStep = 1/(endX - startX);
-			
-			let txStep3 = tStep * (endTx - startTx) * img.width;
-			let tyStep3 = tStep * (endTy - startTy) * img.height;
-			let twStep3 = tStep * (endTw - startTw);
-
-			let tx = startTx * img.width;
-			let ty = startTy * img.height;
-			let tw = startTw;
-			let ind = j * canvasWidth + startX;
-
-			for (var k=startX; k<=endX; k++) {
-				if (tw > depthBuffer[ind]) {
-					newImageData[ind] = imgData[(ty/tw << 0) * imgWidth + (tx/tw << 0)];
-
-					depthBuffer[ind] = tw;
+					tx += txStep3;
+					ty += tyStep3;
+					tw += twStep3;
+					ind++;
 				}
-
-				tx += txStep3;
-				ty += tyStep3;
-				tw += twStep3;
-				ind++;
 			}
+
+			startX += xStep1;
+			startTx += txStep1;
+			startTy += tyStep1;
+			startTw += twStep1;
+			endX += xStep2;
+			endTx += txStep2;
+			endTy += tyStep2;
+			endTw += twStep2;
 		}
 	}
 
