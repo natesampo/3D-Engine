@@ -16,7 +16,7 @@ img.src = 'download.jpg';
 
 function render(context, imageData, canvasWidth, canvasHeight, fps) {
 	renderLevel(levels[currLevel], context, imageData, canvasWidth, canvasHeight, levelCam);
-	context.fillStyle = 'rgba(0, 0, 0, 1)';
+	context.fillStyle = 'rgba(255, 255, 255, 1)';
 	context.fillText('FPS: ' + Math.round(fps), canvasWidth-50, 20);
 }
 
@@ -29,16 +29,16 @@ function tick() {
 		levelCam.translate(vectorScale(vectorNormalize(vectorMultiply(copyArray(levelCam.look), [1, 0, 1, 0])), -0.02));
 	}
 	if (contains(pressed, 'KeyA')) {
-		levelCam.translate(vectorScale(vectorNormalize(vectorCrossProduct([0, -1, 0, 0], vectorMultiply(copyArray(levelCam.look), [1, 0, 1, 0]))), 0.02));
-	}
-	if (contains(pressed, 'KeyD')) {
 		levelCam.translate(vectorScale(vectorNormalize(vectorCrossProduct([0, 1, 0, 0], vectorMultiply(copyArray(levelCam.look), [1, 0, 1, 0]))), 0.02));
 	}
+	if (contains(pressed, 'KeyD')) {
+		levelCam.translate(vectorScale(vectorNormalize(vectorCrossProduct([0, -1, 0, 0], vectorMultiply(copyArray(levelCam.look), [1, 0, 1, 0]))), 0.02));
+	}
 	if (contains(pressed, 'Space')) {
-		levelCam.translate([0, -0.02, 0, 0]);
+		levelCam.translate([0, 0.02, 0, 0]);
 	}
 	if (contains(pressed, 'ShiftLeft')) {
-		levelCam.translate([0, 0.02, 0, 0]);
+		levelCam.translate([0, -0.02, 0, 0]);
 	}
 	if (contains(pressed, 'ArrowUp')) {
 		levelCam.rotate([0.9, 0, 0, 0]);

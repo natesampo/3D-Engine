@@ -367,7 +367,7 @@ function sortTriangleVerticesByY(face) {
 
 function applyViewSpaceTranslation(face, canvasWidth, canvasHeight) {
 	for (var i=0; i<face.vertices.length; i++) {
-		vectorScale(face.vertices[i].coordinates, -1);
+		//vectorScale(face.vertices[i].coordinates, -1);
 		face.vertices[i].translate([1, 1, 0, 0]);
 		face.vertices[i].multiply([canvasWidth/2, canvasHeight/2, 1, 0]);
 	}
@@ -610,6 +610,7 @@ function renderLevel(level, context, imageData, canvasWidth, canvasHeight, camer
 	let buf = new ArrayBuffer(imageData.data.length);
 	let buf8 = new Uint8ClampedArray(buf);
 	let data = new Uint32Array(buf);
+	data.fill((level.color['a'] << 24) | (level.color['b'] << 16) | (level.color['g'] << 8) | level.color['r']);
 
 	let data2 = new Uint32Array(colors.buffer);
 
