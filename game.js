@@ -1,7 +1,6 @@
 const gameSpeed = 60;
 var currLevel = 0;
 
-const timeStart = new Date();
 var newCanv = document.createElement('canvas');
 var newCont = newCanv.getContext('2d');
 var colors;
@@ -60,8 +59,7 @@ function tick() {
 	levelCam['lighting'] = vectorNegate(copyArray(levelCam.look));
 }
 
-function gameLoop(context, imageData, prevWidth, prevHeight, prevTime, counter) {
-	counter++;
+function gameLoop(context, imageData, prevWidth, prevHeight, prevTime) {
 	let start = new Date();
 
 	let canvasWidth;
@@ -82,12 +80,7 @@ function gameLoop(context, imageData, prevWidth, prevHeight, prevTime, counter) 
 	tick();
 	render(context, imageData, canvasWidth, canvasHeight, 1000/(start - prevTime));
 
-	if ((start - timeStart) % 1000 < 100 && counter > 4) {
-		console.log(((start - timeStart)/1000 << 0) + ': ' + counter + ' frames');
-		counter = 0;
-	}
-
-	window.requestAnimationFrame(function() {gameLoop(context, imageData, canvasWidth, canvasHeight, start, counter)});
+	window.requestAnimationFrame(function() {gameLoop(context, imageData, canvasWidth, canvasHeight, start)});
 }
 
 function start() {
@@ -101,5 +94,5 @@ function start() {
 	context.imageSmoothingEnabled = false;
 	const imageData = context.createImageData(canvas.width, canvas.height);
 
-	window.requestAnimationFrame(function() {gameLoop(context, imageData, canvas.width, canvas.height, new Date(), 0)});
+	window.requestAnimationFrame(function() {gameLoop(context, imageData, canvas.width, canvas.height, new Date())});
 }
