@@ -524,21 +524,35 @@ function textureTriangle(face, newImageData, depthBuffer, canvasWidth, imgData) 
 				let tw = startTw;
 				let ind = j * canvasWidth + startX << 0;
 
-				/*if (twStep3 == 0) {
-					console.log(endX - startX);
-				}*/
+				if (twStep3 == 0) {
+					let txtw = txStep3/tw;
+					let tytw = tyStep3/tw;
+					ty /= tw;
+					tx /= tw;
+					for (var k=startX; k<=endX; k++) {
+						if (tw > depthBuffer[ind]) {
+							newImageData[ind] = imgData[(ty << 0) * imgWidth + (tx << 0)];
 
-				for (var k=startX; k<=endX; k++) {
-					if (tw > depthBuffer[ind]) {
-						newImageData[ind] = imgData[(ty/tw << 0) * imgWidth + (tx/tw << 0)];
+							depthBuffer[ind] = tw;
+						}
 
-						depthBuffer[ind] = tw;
+						tx += txtw;
+						ty += tytw;
+						ind++;
 					}
+				} else {
+					for (var k=startX; k<=endX; k++) {
+						if (tw > depthBuffer[ind]) {
+							newImageData[ind] = imgData[(ty/tw << 0) * imgWidth + (tx/tw << 0)];
 
-					tx += txStep3;
-					ty += tyStep3;
-					tw += twStep3;
-					ind++;
+							depthBuffer[ind] = tw;
+						}
+
+						tx += txStep3;
+						ty += tyStep3;
+						tw += twStep3;
+						ind++;
+					}
 				}
 			}
 
@@ -590,17 +604,35 @@ function textureTriangle(face, newImageData, depthBuffer, canvasWidth, imgData) 
 				let tw = startTw;
 				let ind = j * canvasWidth + startX << 0;
 
-				for (var k=startX; k<=endX; k++) {
-					if (tw > depthBuffer[ind]) {
-						newImageData[ind] = imgData[(ty/tw << 0) * imgWidth + (tx/tw << 0)];
+				if (twStep3 == 0) {
+					let txtw = txStep3/tw;
+					let tytw = tyStep3/tw;
+					ty /= tw;
+					tx /= tw;
+					for (var k=startX; k<=endX; k++) {
+						if (tw > depthBuffer[ind]) {
+							newImageData[ind] = imgData[(ty << 0) * imgWidth + (tx << 0)];
 
-						depthBuffer[ind] = tw;
+							depthBuffer[ind] = tw;
+						}
+
+						tx += txtw;
+						ty += tytw;
+						ind++;
 					}
+				} else {
+					for (var k=startX; k<=endX; k++) {
+						if (tw > depthBuffer[ind]) {
+							newImageData[ind] = imgData[(ty/tw << 0) * imgWidth + (tx/tw << 0)];
 
-					tx += txStep3;
-					ty += tyStep3;
-					tw += twStep3;
-					ind++;
+							depthBuffer[ind] = tw;
+						}
+
+						tx += txStep3;
+						ty += tyStep3;
+						tw += twStep3;
+						ind++;
+					}
 				}
 			}
 
