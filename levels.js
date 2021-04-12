@@ -47,11 +47,29 @@ const levels = [new Level({r: 40, g: 40, b: 40, a: 255}, [
 		new Face({r: 255, g: 0, b: 0, a: 1}, [
 			new Vertex([1, 0, 1, 1], [0, 1, 1]),
 			new Vertex([0, 0, 0, 1], [1, 0, 1]),
-			new Vertex([1, 0, 0, 1], [1, 1, 1])])])
+			new Vertex([1, 0, 0, 1], [1, 1, 1])])]),
+	new Body([
+		new Face({r: 255, g: 0, b: 0, a:1}, [
+			new Vertex([-2, 3, 3, 1], [0, 1, 1]),
+			new Vertex([3, 3, 3, 1], [1, 0, 1]),
+			new Vertex([-2, -2, 3, 1], [1, 1, 1])]),
+		new Face({r: 255, g: 0, b: 0, a:1}, [
+			new Vertex([-2, -2, 3, 1], [1, 1, 1]),
+			new Vertex([3, 3, 3, 1], [1, 0, 1]),
+			new Vertex([3, -2, 3, 1], [0, 0, 1])])]),
+	new Body([
+		new Face({r: 255, g: 0, b: 0, a:1}, [
+			new Vertex([-2, 0, 3, 1], [0, 1, 1]),
+			new Vertex([3, 0, 3, 1], [1, 0, 1]),
+			new Vertex([-2, 0, -1, 1], [1, 1, 1])]),
+		new Face({r: 255, g: 0, b: 0, a:1}, [
+			new Vertex([-2, 0, -1, 1], [1, 1, 1]),
+			new Vertex([3, 0, 3, 1], [1, 0, 1]),
+			new Vertex([3, 0, -1, 1], [0, 0, 1])])])
 	])];
 
 const levelCam = new Camera(
-		[0.5, 0.5, -1, 0],
+		[0.5, 0.75, -2, 0],
 		[0, 0, 1, 0],
 		0,
 		70,

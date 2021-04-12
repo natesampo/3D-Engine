@@ -20,6 +20,12 @@ class Vertex {
 		vectorAdd(applyTransformationMatrix(vectorSubtract(this.coordinates, origin), getRotationMatrix(vector)), origin);
 	}
 
+	floor() {
+		this.coordinates[0] = this.coordinates[0] << 0;
+		this.coordinates[1] = this.coordinates[1] << 0;
+		this.coordinates[2] = this.coordinates[2] << 0;
+	}
+
 	copy() {
 		let newCoords = copyArray(this.coordinates);
 		let newTextureCoords = copyArray(this.textureCoordinates);
@@ -56,6 +62,12 @@ class Face {
 	scale(factor) {
 		for (var i=0; i<this.vertices.length; i++) {
 			vectorScale(this.vertices[i].coordinates, factor);
+		}
+	}
+
+	floor() {
+		for (var i=0; i<this.vertices.length; i++) {
+			this.vertices[i].floor();
 		}
 	}
 
@@ -380,18 +392,21 @@ function clipAndProjectFace(face, canvasWidth, canvasHeight, camera) {
 			clippedTriangles[k].vertices[0].textureCoordinates[1] /= clippedTriangles[k].vertices[0].coordinates[3];
 			clippedTriangles[k].vertices[0].textureCoordinates[2] = 1/clippedTriangles[k].vertices[0].coordinates[3];
 			vectorScale(clippedTriangles[k].vertices[0].coordinates, 1/clippedTriangles[k].vertices[0].coordinates[3]);
+			clippedTriangles[k].vertices[0].coordinates[3] = 1;
 		}
 		if (clippedTriangles[k].vertices[1].coordinates[3] != 0) {
 			clippedTriangles[k].vertices[1].textureCoordinates[0] /= clippedTriangles[k].vertices[1].coordinates[3];
 			clippedTriangles[k].vertices[1].textureCoordinates[1] /= clippedTriangles[k].vertices[1].coordinates[3];
 			clippedTriangles[k].vertices[1].textureCoordinates[2] = 1/clippedTriangles[k].vertices[1].coordinates[3];
 			vectorScale(clippedTriangles[k].vertices[1].coordinates, 1/clippedTriangles[k].vertices[1].coordinates[3]);
+			clippedTriangles[k].vertices[1].coordinates[3] = 1;
 		}
 		if (clippedTriangles[k].vertices[2].coordinates[3] != 0) {
 			clippedTriangles[k].vertices[2].textureCoordinates[0] /= clippedTriangles[k].vertices[2].coordinates[3];
 			clippedTriangles[k].vertices[2].textureCoordinates[1] /= clippedTriangles[k].vertices[2].coordinates[3];
 			clippedTriangles[k].vertices[2].textureCoordinates[2] = 1/clippedTriangles[k].vertices[2].coordinates[3];
 			vectorScale(clippedTriangles[k].vertices[2].coordinates, 1/clippedTriangles[k].vertices[2].coordinates[3]);
+			clippedTriangles[k].vertices[2].coordinates[3] = 1;
 		}
 		applyViewSpaceTranslation(clippedTriangles[k], canvasWidth, canvasHeight);
 	}
@@ -449,6 +464,7 @@ function clipAndProjectLevelBodies(level, canvasWidth, canvasHeight, camera) {
 }
 
 function textureTriangle(face, newImageData, depthBuffer, canvasWidth, imgData) {
+	face.floor();
 	sortTriangleVerticesByY(face);
 
 	let vertex1 = face.vertices[0].coordinates;
@@ -459,16 +475,15 @@ function textureTriangle(face, newImageData, depthBuffer, canvasWidth, imgData) 
 	let textureVertex2 = face.vertices[1].textureCoordinates;
 	let textureVertex3 = face.vertices[2].textureCoordinates;
 
-	let dy1 = vertex2[1] - vertex1[1];
-	let dy2 = vertex3[1] - vertex1[1];
+	let dy1 = vertex2[1] - vertex1[1] << 0;
+	let dy2 = vertex3[1] - vertex1[1] << 0;
 
 	let xStep1 = ((dy1) ? (vertex2[0] - vertex1[0]) / dy1 : 0);
-	let xStep2 = ((dy2) ? (vertex3[0] - vertex1[0]) / dy2 : 0);
-
 	let txStep1 = ((dy1) ? (textureVertex2[0] - textureVertex1[0]) / dy1 : 0);
 	let tyStep1 = ((dy1) ? (textureVertex2[1] - textureVertex1[1]) / dy1 : 0);
 	let twStep1 = ((dy1) ? (textureVertex2[2] - textureVertex1[2]) / dy1 : 0);
 
+	let xStep2 = ((dy2) ? (vertex3[0] - vertex1[0]) / dy2 : 0);
 	let txStep2 = ((dy2) ? (textureVertex3[0] - textureVertex1[0]) / dy2 : 0);
 	let tyStep2 = ((dy2) ? (textureVertex3[1] - textureVertex1[1]) / dy2 : 0);
 	let twStep2 = ((dy2) ? (textureVertex3[2] - textureVertex1[2]) / dy2 : 0);
@@ -484,15 +499,19 @@ function textureTriangle(face, newImageData, depthBuffer, canvasWidth, imgData) 
 	let endTy = startTy;
 	let endTw = startTw;
 
-	if (vertex2[0] > vertex3[0]) {
+	let flipped = false;
+	if ((vertex2[0] - vertex1[0]) * (vertex3[1] - vertex1[1]) - (vertex2[1] - vertex1[1]) * (vertex3[0] - vertex1[0]) > 0) {
 		[xStep1, xStep2] = swap(xStep1, xStep2);
 		[txStep1, txStep2] = swap(txStep1, txStep2);
 		[tyStep1, tyStep2] = swap(tyStep1, tyStep2);
 		[twStep1, twStep2] = swap(twStep1, twStep2);
+
+		flipped = true;
 	}
 
+	let j = vertex1[1] << 0;
 	if (dy1 > 1 && dy2 > 1) {
-		for (var j=vertex1[1] << 0; j<=vertex2[1]; j++) {
+		while (j<=vertex2[1]) {
 			if (startX != endX) {
 				let tStep = 1/(endX - startX);
 
@@ -504,6 +523,10 @@ function textureTriangle(face, newImageData, depthBuffer, canvasWidth, imgData) 
 				let ty = startTy * img.height;
 				let tw = startTw;
 				let ind = j * canvasWidth + startX << 0;
+
+				/*if (twStep3 == 0) {
+					console.log(endX - startX);
+				}*/
 
 				for (var k=startX; k<=endX; k++) {
 					if (tw > depthBuffer[ind]) {
@@ -527,34 +550,34 @@ function textureTriangle(face, newImageData, depthBuffer, canvasWidth, imgData) 
 			endTx += txStep2;
 			endTy += tyStep2;
 			endTw += twStep2;
+			j++;
 		}
 	}
 
-	dy1 = vertex3[1] - vertex2[1];
+	dy1 = vertex3[1] - vertex2[1] << 0;
 
-	if (vertex3[0] > vertex2[0]) {
-		xStep1 = ((dy1) ? (vertex3[0] - vertex2[0]) / dy1 : 0);
-		txStep1 = ((dy1) ? (textureVertex3[0] - textureVertex2[0]) / dy1 : 0);
-		tyStep1 = ((dy1) ? (textureVertex3[1] - textureVertex2[1]) / dy1 : 0);
-		twStep1 = ((dy1) ? (textureVertex3[2] - textureVertex2[2]) / dy1 : 0);
-	} else {
-		xStep2 = ((dy1) ? (vertex3[0] - vertex2[0]) / dy1 : 0);
-		txStep2 = ((dy1) ? (textureVertex3[0] - textureVertex2[0]) / dy1 : 0);
-		tyStep2 = ((dy1) ? (textureVertex3[1] - textureVertex2[1]) / dy1 : 0);
-		twStep2 = ((dy1) ? (textureVertex3[2] - textureVertex2[2]) / dy1 : 0);
-	}
+	if (dy1 > 1) {
+		if (flipped) {
+			endX = vertex2[0];
+			endTx = textureVertex2[0];
+			endTy = textureVertex2[1];
+			endTw = textureVertex2[2];
+			xStep2 = ((dy1) ? (vertex3[0] - vertex2[0]) / dy1 : 0);
+			txStep2 = ((dy1) ? (textureVertex3[0] - textureVertex2[0]) / dy1 : 0);
+			tyStep2 = ((dy1) ? (textureVertex3[1] - textureVertex2[1]) / dy1 : 0);
+			twStep2 = ((dy1) ? (textureVertex3[2] - textureVertex2[2]) / dy1 : 0);
+		} else {
+			startX = vertex2[0];
+			startTx = textureVertex2[0];
+			startTy = textureVertex2[1];
+			startTw = textureVertex2[2];
+			xStep1 = ((dy1) ? (vertex3[0] - vertex2[0]) / dy1 : 0);
+			txStep1 = ((dy1) ? (textureVertex3[0] - textureVertex2[0]) / dy1 : 0);
+			tyStep1 = ((dy1) ? (textureVertex3[1] - textureVertex2[1]) / dy1 : 0);
+			twStep1 = ((dy1) ? (textureVertex3[2] - textureVertex2[2]) / dy1 : 0);
+		}
 
-	startX = vertex2[0];
-	startTx = textureVertex2[0];
-	startTy = textureVertex2[1];
-	startTw = textureVertex2[2];
-	endX = vertex1[0];
-	endTx = textureVertex1[0] + (vertex2[1] - vertex1[1]) * txStep2;
-	endTy = textureVertex1[1] + (vertex2[1] - vertex1[1]) * tyStep2;
-	endTw = textureVertex1[2] + (vertex2[1] - vertex1[1]) * twStep2;
-
-	if (dy1 > 1 && dy2 > 1) {
-		for (var j=vertex2[1] << 0; j<=vertex3[1]; j++) {
+		while (j<=vertex3[1]) {
 			if (startX != endX) {
 				let tStep = 1/(endX - startX);
 				
@@ -589,6 +612,7 @@ function textureTriangle(face, newImageData, depthBuffer, canvasWidth, imgData) 
 			endTx += txStep2;
 			endTy += tyStep2;
 			endTw += twStep2;
+			j++;
 		}
 	}
 
@@ -597,7 +621,7 @@ function textureTriangle(face, newImageData, depthBuffer, canvasWidth, imgData) 
 
 function renderLevel(level, context, imageData, canvasWidth, canvasHeight, camera) {
 	//context.clearRect(0, 0, canvasWidth, canvasHeight);
-	let depthBuffer = new Uint8Array(canvasWidth*canvasHeight);
+	let depthBuffer = new Float32Array(canvasWidth*canvasHeight);
 
 	//context.fillStyle = level.getColor();
 	//context.fillRect(0, 0, canvasWidth, canvasHeight);
