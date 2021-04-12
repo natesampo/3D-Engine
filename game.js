@@ -18,7 +18,7 @@ img.src = 'download.jpg';
 
 function render(context, imageData, canvasWidth, canvasHeight, fps) {
 	renderLevel(levels[currLevel], context, imageData.data, canvasWidth, canvasHeight, levelCam);
-	context.putImageData(imageData, 0, 0);
+	context.putImageData(imageData, 0, 0, 0, 0, canvasWidth, canvasHeight);
 	context.fillStyle = 'rgba(255, 255, 255, 1)';
 	context.fillText('FPS: ' + Math.round(fps), canvasWidth-50, 20);
 }
