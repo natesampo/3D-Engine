@@ -463,7 +463,7 @@ function clipAndProjectLevelBodies(level, canvasWidth, canvasHeight, camera) {
 	return facesToDraw;
 }
 
-function textureTriangle(face, newImageData, depthBuffer, canvasWidth, imgData) {
+function textureTriangle(face, newImageData, depthBuffer, canvasWidth, imgData, resolution) {
 	face.floor();
 	sortTriangleVerticesByY(face);
 
@@ -478,15 +478,15 @@ function textureTriangle(face, newImageData, depthBuffer, canvasWidth, imgData) 
 	let dy1 = vertex2[1] - vertex1[1] << 0;
 	let dy2 = vertex3[1] - vertex1[1] << 0;
 
-	let xStep1 = ((dy1) ? (vertex2[0] - vertex1[0]) / dy1 : 0);
-	let txStep1 = ((dy1) ? (textureVertex2[0] - textureVertex1[0]) / dy1 : 0);
-	let tyStep1 = ((dy1) ? (textureVertex2[1] - textureVertex1[1]) / dy1 : 0);
-	let twStep1 = ((dy1) ? (textureVertex2[2] - textureVertex1[2]) / dy1 : 0);
+	let xStep1 = resolution * ((dy1) ? (vertex2[0] - vertex1[0]) / dy1 : 0);
+	let txStep1 = resolution * ((dy1) ? (textureVertex2[0] - textureVertex1[0]) / dy1 : 0);
+	let tyStep1 = resolution * ((dy1) ? (textureVertex2[1] - textureVertex1[1]) / dy1 : 0);
+	let twStep1 = resolution * ((dy1) ? (textureVertex2[2] - textureVertex1[2]) / dy1 : 0);
 
-	let xStep2 = ((dy2) ? (vertex3[0] - vertex1[0]) / dy2 : 0);
-	let txStep2 = ((dy2) ? (textureVertex3[0] - textureVertex1[0]) / dy2 : 0);
-	let tyStep2 = ((dy2) ? (textureVertex3[1] - textureVertex1[1]) / dy2 : 0);
-	let twStep2 = ((dy2) ? (textureVertex3[2] - textureVertex1[2]) / dy2 : 0);
+	let xStep2 = resolution * ((dy2) ? (vertex3[0] - vertex1[0]) / dy2 : 0);
+	let txStep2 = resolution * ((dy2) ? (textureVertex3[0] - textureVertex1[0]) / dy2 : 0);
+	let tyStep2 = resolution * ((dy2) ? (textureVertex3[1] - textureVertex1[1]) / dy2 : 0);
+	let twStep2 = resolution * ((dy2) ? (textureVertex3[2] - textureVertex1[2]) / dy2 : 0);
 
 	let imgWidth = img.width;
 
@@ -515,9 +515,9 @@ function textureTriangle(face, newImageData, depthBuffer, canvasWidth, imgData) 
 			if (startX != endX) {
 				let tStep = 1/(endX - startX);
 
-				let txStep3 = tStep * (endTx - startTx) * img.width;
-				let tyStep3 = tStep * (endTy - startTy) * img.height;
-				let twStep3 = tStep * (endTw - startTw);
+				let txStep3 = resolution * tStep * (endTx - startTx) * img.width;
+				let tyStep3 = resolution * tStep * (endTy - startTy) * img.height;
+				let twStep3 = resolution * tStep * (endTw - startTw);
 
 				let tx = startTx * img.width;
 				let ty = startTy * img.height;
@@ -527,23 +527,33 @@ function textureTriangle(face, newImageData, depthBuffer, canvasWidth, imgData) 
 				if (twStep3 == 0) {
 					let txtw = txStep3/tw;
 					let tytw = tyStep3/tw;
-					ty /= tw;
 					tx /= tw;
-					for (var k=startX; k<=endX; k++) {
+					ty /= tw;
+					for (var k=startX; k<=endX; k+=resolution) {
 						if (tw > depthBuffer[ind]) {
-							newImageData[ind] = imgData[(ty << 0) * imgWidth + (tx << 0)];
+							let pixel = imgData[(ty << 0) * imgWidth + (tx << 0)];
+							for (var r1=0; r1<resolution; r1++) {
+								for (var r2=0; r2<resolution; r2++) {
+									newImageData[ind + r1 + r2 * canvasWidth] = pixel;
+								}
+							}
 
 							depthBuffer[ind] = tw;
 						}
 
 						tx += txtw;
 						ty += tytw;
-						ind++;
+						ind += resolution;
 					}
 				} else {
-					for (var k=startX; k<=endX; k++) {
+					for (var k=startX; k<=endX; k+=resolution) {
 						if (tw > depthBuffer[ind]) {
-							newImageData[ind] = imgData[(ty/tw << 0) * imgWidth + (tx/tw << 0)];
+							let pixel = imgData[(ty/tw << 0) * imgWidth + (tx/tw << 0)];
+							for (var r1=0; r1<resolution; r1++) {
+								for (var r2=0; r2<resolution; r2++) {
+									newImageData[ind + r1 + r2 * canvasWidth] = pixel;
+								}
+							}
 
 							depthBuffer[ind] = tw;
 						}
@@ -551,7 +561,7 @@ function textureTriangle(face, newImageData, depthBuffer, canvasWidth, imgData) 
 						tx += txStep3;
 						ty += tyStep3;
 						tw += twStep3;
-						ind++;
+						ind += resolution;
 					}
 				}
 			}
@@ -564,7 +574,7 @@ function textureTriangle(face, newImageData, depthBuffer, canvasWidth, imgData) 
 			endTx += txStep2;
 			endTy += tyStep2;
 			endTw += twStep2;
-			j++;
+			j+=resolution;
 		}
 	}
 
@@ -576,28 +586,28 @@ function textureTriangle(face, newImageData, depthBuffer, canvasWidth, imgData) 
 			endTx = textureVertex2[0];
 			endTy = textureVertex2[1];
 			endTw = textureVertex2[2];
-			xStep2 = ((dy1) ? (vertex3[0] - vertex2[0]) / dy1 : 0);
-			txStep2 = ((dy1) ? (textureVertex3[0] - textureVertex2[0]) / dy1 : 0);
-			tyStep2 = ((dy1) ? (textureVertex3[1] - textureVertex2[1]) / dy1 : 0);
-			twStep2 = ((dy1) ? (textureVertex3[2] - textureVertex2[2]) / dy1 : 0);
+			xStep2 = resolution * ((dy1) ? (vertex3[0] - vertex2[0]) / dy1 : 0);
+			txStep2 = resolution * ((dy1) ? (textureVertex3[0] - textureVertex2[0]) / dy1 : 0);
+			tyStep2 = resolution * ((dy1) ? (textureVertex3[1] - textureVertex2[1]) / dy1 : 0);
+			twStep2 = resolution * ((dy1) ? (textureVertex3[2] - textureVertex2[2]) / dy1 : 0);
 		} else {
 			startX = vertex2[0];
 			startTx = textureVertex2[0];
 			startTy = textureVertex2[1];
 			startTw = textureVertex2[2];
-			xStep1 = ((dy1) ? (vertex3[0] - vertex2[0]) / dy1 : 0);
-			txStep1 = ((dy1) ? (textureVertex3[0] - textureVertex2[0]) / dy1 : 0);
-			tyStep1 = ((dy1) ? (textureVertex3[1] - textureVertex2[1]) / dy1 : 0);
-			twStep1 = ((dy1) ? (textureVertex3[2] - textureVertex2[2]) / dy1 : 0);
+			xStep1 = resolution * ((dy1) ? (vertex3[0] - vertex2[0]) / dy1 : 0);
+			txStep1 = resolution * ((dy1) ? (textureVertex3[0] - textureVertex2[0]) / dy1 : 0);
+			tyStep1 = resolution * ((dy1) ? (textureVertex3[1] - textureVertex2[1]) / dy1 : 0);
+			twStep1 = resolution * ((dy1) ? (textureVertex3[2] - textureVertex2[2]) / dy1 : 0);
 		}
 
 		while (j<=vertex3[1]) {
 			if (startX != endX) {
 				let tStep = 1/(endX - startX);
 				
-				let txStep3 = tStep * (endTx - startTx) * img.width;
-				let tyStep3 = tStep * (endTy - startTy) * img.height;
-				let twStep3 = tStep * (endTw - startTw);
+				let txStep3 = resolution * tStep * (endTx - startTx) * img.width;
+				let tyStep3 = resolution * tStep * (endTy - startTy) * img.height;
+				let twStep3 = resolution * tStep * (endTw - startTw);
 
 				let tx = startTx * img.width;
 				let ty = startTy * img.height;
@@ -607,23 +617,33 @@ function textureTriangle(face, newImageData, depthBuffer, canvasWidth, imgData) 
 				if (twStep3 == 0) {
 					let txtw = txStep3/tw;
 					let tytw = tyStep3/tw;
-					ty /= tw;
 					tx /= tw;
-					for (var k=startX; k<=endX; k++) {
+					ty /= tw;
+					for (var k=startX; k<=endX; k+=resolution) {
 						if (tw > depthBuffer[ind]) {
-							newImageData[ind] = imgData[(ty << 0) * imgWidth + (tx << 0)];
+							let pixel = imgData[(ty << 0) * imgWidth + (tx << 0)];
+							for (var r1=0; r1<resolution; r1++) {
+								for (var r2=0; r2<resolution; r2++) {
+									newImageData[ind + r1 + r2 * canvasWidth] = pixel;
+								}
+							}
 
 							depthBuffer[ind] = tw;
 						}
 
 						tx += txtw;
 						ty += tytw;
-						ind++;
+						ind += resolution;
 					}
 				} else {
-					for (var k=startX; k<=endX; k++) {
+					for (var k=startX; k<=endX; k+=resolution) {
 						if (tw > depthBuffer[ind]) {
-							newImageData[ind] = imgData[(ty/tw << 0) * imgWidth + (tx/tw << 0)];
+							let pixel = imgData[(ty/tw << 0) * imgWidth + (tx/tw << 0)];
+							for (var r1=0; r1<resolution; r1++) {
+								for (var r2=0; r2<resolution; r2++) {
+									newImageData[ind + r1 + r2 * canvasWidth] = pixel;
+								}
+							}
 
 							depthBuffer[ind] = tw;
 						}
@@ -631,7 +651,7 @@ function textureTriangle(face, newImageData, depthBuffer, canvasWidth, imgData) 
 						tx += txStep3;
 						ty += tyStep3;
 						tw += twStep3;
-						ind++;
+						ind += resolution;
 					}
 				}
 			}
@@ -644,7 +664,7 @@ function textureTriangle(face, newImageData, depthBuffer, canvasWidth, imgData) 
 			endTx += txStep2;
 			endTy += tyStep2;
 			endTw += twStep2;
-			j++;
+			j+=resolution;
 		}
 	}
 
@@ -690,7 +710,7 @@ function renderLevel(level, context, imageData, canvasWidth, canvasHeight, camer
 		//context.fill();
 		context.closePath();*/
 
-		textureTriangle(face, data, depthBuffer, canvasWidth, data2);
+		textureTriangle(face, data, depthBuffer, canvasWidth, data2, 2);
 	}
 
 	imageData.set(buf8);
