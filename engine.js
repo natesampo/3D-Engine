@@ -488,6 +488,8 @@ function textureTriangle(face, newImageData, depthBuffer, canvasWidth, imgData) 
 	let tyStep2 = ((dy2) ? (textureVertex3[1] - textureVertex1[1]) / dy2 : 0);
 	let twStep2 = ((dy2) ? (textureVertex3[2] - textureVertex1[2]) / dy2 : 0);
 
+	let imgWidth = img.width;
+
 	if (dy1 > 1 && dy2 > 1) {
 		for (var j=vertex1[1] << 0; j<=vertex2[1]; j++) {
 			let stepsTaken1 = j - vertex1[1];
@@ -522,7 +524,7 @@ function textureTriangle(face, newImageData, depthBuffer, canvasWidth, imgData) 
 			for (var k=startX; k<=endX; k++) {
 				let ind = j * canvasWidth + k;
 				if (tw > depthBuffer[ind]) {
-					newImageData[ind] = imgData[(ty/tw << 0) * img.width + (tx/tw << 0)];
+					newImageData[ind] = imgData[(ty/tw << 0) * imgWidth + (tx/tw << 0)];
 
 					depthBuffer[ind] = tw;
 				}
@@ -577,7 +579,7 @@ function textureTriangle(face, newImageData, depthBuffer, canvasWidth, imgData) 
 			for (var k=startX; k<=endX; k++) {
 				let ind = j * canvasWidth + k;
 				if (tw > depthBuffer[ind]) {
-					newImageData[ind] = imgData[(ty/tw << 0) * img.width + (tx/tw << 0)];
+					newImageData[ind] = imgData[(ty/tw << 0) * imgWidth + (tx/tw << 0)];
 
 					depthBuffer[ind] = tw;
 				}
