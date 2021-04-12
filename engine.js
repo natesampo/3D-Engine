@@ -315,8 +315,7 @@ function faceClipAgainstPlane(planePoint, planeNormal, face) {
 		if (pointToPlaneDistance(face.vertices[i].coordinates, planePoint, planeNormal) >= 0) {
 			insidePoints.push(face.vertices[i]);
 		} else {
-			outsidePoints.push(face.vertices[i]);
-			face.vertices.splice(i, 1);
+			outsidePoints.push(face.vertices.splice(i, 1)[0]);
 		}
 	}
 
@@ -367,7 +366,6 @@ function sortTriangleVerticesByY(face) {
 
 function applyViewSpaceTranslation(face, canvasWidth, canvasHeight) {
 	for (var i=0; i<face.vertices.length; i++) {
-		//vectorScale(face.vertices[i].coordinates, -1);
 		face.vertices[i].translate([1, 1, 0, 0]);
 		face.vertices[i].multiply([canvasWidth/2, canvasHeight/2, 1, 0]);
 	}
@@ -490,7 +488,7 @@ function textureTriangle(face, newImageData, depthBuffer, canvasWidth, imgData) 
 	let tyStep2 = ((dy2) ? (textureVertex3[1] - textureVertex1[1]) / dy2 : 0);
 	let twStep2 = ((dy2) ? (textureVertex3[2] - textureVertex1[2]) / dy2 : 0);
 
-	if (dy1) {
+	if (dy1 > 1 && dy2 > 1) {
 		for (var j=vertex1[1] << 0; j<=vertex2[1]; j++) {
 			let stepsTaken1 = j - vertex1[1];
 
@@ -521,17 +519,14 @@ function textureTriangle(face, newImageData, depthBuffer, canvasWidth, imgData) 
 			let ty = startTy * img.height;
 			let tw = startTw;
 
-			//let imageDataIndex = xyToImageDataIndex(startX, j, newImageData.width);
 			for (var k=startX; k<=endX; k++) {
 				let ind = j * canvasWidth + k;
 				if (tw > depthBuffer[ind]) {
 					newImageData[ind] = imgData[(ty/tw << 0) * img.width + (tx/tw << 0)];
-					//updatePixel(newImageData, imageDataIndex, xyToImageDataIndex(tx/tw << 0, ty/tw << 0, img.width));
 
 					depthBuffer[ind] = tw;
 				}
 
-				//imageDataIndex += 4;
 				tx += txStep3;
 				ty += tyStep3;
 				tw += twStep3;
@@ -547,7 +542,7 @@ function textureTriangle(face, newImageData, depthBuffer, canvasWidth, imgData) 
 	tyStep1 = ((dy1) ? (textureVertex3[1] - textureVertex2[1]) / dy1 : 0);
 	twStep1 = ((dy1) ? (textureVertex3[2] - textureVertex2[2]) / dy1 : 0);
 
-	if (dy1) {
+	if (dy1 > 1 && dy2 > 1) {
 		for (var j=vertex2[1] << 0; j<=vertex3[1]; j++) {
 			let stepsTaken1 = j - vertex1[1];
 			let stepsTaken2 = j - vertex2[1];
@@ -579,17 +574,14 @@ function textureTriangle(face, newImageData, depthBuffer, canvasWidth, imgData) 
 			let ty = startTy * img.height;
 			let tw = startTw;
 
-			//let imageDataIndex = xyToImageDataIndex(startX, j, newImageData.width);
 			for (var k=startX; k<=endX; k++) {
 				let ind = j * canvasWidth + k;
 				if (tw > depthBuffer[ind]) {
 					newImageData[ind] = imgData[(ty/tw << 0) * img.width + (tx/tw << 0)];
-					//updatePixel(newImageData, imageDataIndex, xyToImageDataIndex(tx/tw << 0, ty/tw << 0, img.width));
 
 					depthBuffer[ind] = tw;
 				}
 
-				//imageDataIndex += 4;
 				tx += txStep3;
 				ty += tyStep3;
 				tw += twStep3;

@@ -47,10 +47,10 @@ function tick() {
 		levelCam.rotate([-0.9, 0, 0, 0]);
 	}
 	if (contains(pressed, 'ArrowLeft')) {
-		levelCam.rotate([0, 0.9, 0, 0]);
+		levelCam.rotate([0, -0.9, 0, 0]);
 	}
 	if (contains(pressed, 'ArrowRight')) {
-		levelCam.rotate([0, -0.9, 0, 0]);
+		levelCam.rotate([0, 0.9, 0, 0]);
 	}
 
 	levelCam['lighting'] = vectorNegate(copyArray(levelCam.look));
