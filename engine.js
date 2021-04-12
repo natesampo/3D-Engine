@@ -597,18 +597,16 @@ function textureTriangle(face, newImageData, depthBuffer, canvasWidth, imgData) 
 }
 
 function renderLevel(level, context, imageData, canvasWidth, canvasHeight, camera) {
-	context.clearRect(0, 0, canvasWidth, canvasHeight);
+	//context.clearRect(0, 0, canvasWidth, canvasHeight);
 	let depthBuffer = new Uint8Array(canvasWidth*canvasHeight);
 
-	context.fillStyle = level.getColor();
-	context.fillRect(0, 0, canvasWidth, canvasHeight);
+	//context.fillStyle = level.getColor();
+	//context.fillRect(0, 0, canvasWidth, canvasHeight);
 
-	let buf = new ArrayBuffer(imageData.data.length);
+	let buf = new ArrayBuffer(imageData.length);
 	let buf8 = new Uint8ClampedArray(buf);
 	let data = new Uint32Array(buf);
 	data.fill((level.color['a'] << 24) | (level.color['b'] << 16) | (level.color['g'] << 8) | level.color['r']);
-
-	let data2 = new Uint32Array(colors.buffer);
 
 	//let newImageData = context.getImageData(0, 0, canvasWidth, canvasHeight);
 
@@ -640,8 +638,8 @@ function renderLevel(level, context, imageData, canvasWidth, canvasHeight, camer
 		textureTriangle(face, data, depthBuffer, canvasWidth, data2);
 	}
 
-	imageData.data.set(buf8);
+	imageData.set(buf8);
 
-	context.putImageData(imageData, 0, 0);
+	//context.putImageData(imageData, 0, 0);
 	//context.drawImage(imageData, 0, 0);
 }

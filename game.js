@@ -4,18 +4,21 @@ var currLevel = 0;
 var newCanv = document.createElement('canvas');
 var newCont = newCanv.getContext('2d');
 var colors;
+var data2;
 var img = new Image();
 img.onload = function() {
 	newCanv.width = img.width;
 	newCanv.height = img.height;
 	newCont.drawImage(img, 0, 0);
 	colors = newCont.getImageData(0, 0, img.width, img.height).data;
+	data2 = new Uint32Array(colors.buffer);
 	start();
 }
 img.src = 'download.jpg';
 
 function render(context, imageData, canvasWidth, canvasHeight, fps) {
-	renderLevel(levels[currLevel], context, imageData, canvasWidth, canvasHeight, levelCam);
+	renderLevel(levels[currLevel], context, imageData.data, canvasWidth, canvasHeight, levelCam);
+	context.putImageData(imageData, 0, 0);
 	context.fillStyle = 'rgba(255, 255, 255, 1)';
 	context.fillText('FPS: ' + Math.round(fps), canvasWidth-50, 20);
 }
