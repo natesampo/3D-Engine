@@ -520,9 +520,9 @@ function textureTriangle(face, newImageData, depthBuffer, canvasWidth, imgData) 
 			let tx = startTx * img.width;
 			let ty = startTy * img.height;
 			let tw = startTw;
+			let ind = j * canvasWidth + startX;
 
 			for (var k=startX; k<=endX; k++) {
-				let ind = j * canvasWidth + k;
 				if (tw > depthBuffer[ind]) {
 					newImageData[ind] = imgData[(ty/tw << 0) * imgWidth + (tx/tw << 0)];
 
@@ -532,6 +532,7 @@ function textureTriangle(face, newImageData, depthBuffer, canvasWidth, imgData) 
 				tx += txStep3;
 				ty += tyStep3;
 				tw += twStep3;
+				ind++;
 			}
 		}
 	}
@@ -575,9 +576,9 @@ function textureTriangle(face, newImageData, depthBuffer, canvasWidth, imgData) 
 			let tx = startTx * img.width;
 			let ty = startTy * img.height;
 			let tw = startTw;
+			let ind = j * canvasWidth + startX;
 
 			for (var k=startX; k<=endX; k++) {
-				let ind = j * canvasWidth + k;
 				if (tw > depthBuffer[ind]) {
 					newImageData[ind] = imgData[(ty/tw << 0) * imgWidth + (tx/tw << 0)];
 
@@ -587,6 +588,7 @@ function textureTriangle(face, newImageData, depthBuffer, canvasWidth, imgData) 
 				tx += txStep3;
 				ty += tyStep3;
 				tw += twStep3;
+				ind++;
 			}
 		}
 	}
