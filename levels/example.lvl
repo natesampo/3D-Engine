@@ -1,0 +1,50 @@
+color 40 40 40 255
+b
+f example.jpg
+v 0 0 0 0 1
+v 0 1 0 0 0
+v 1 1 0 1 0
+f example.jpg
+v 0 0 0 0 1
+v 1 1 0 1 0
+v 1 0 0 1 1
+f example.jpg
+v 1 0 0 0 1
+v 1 1 0 0 0
+v 1 1 1 1 0
+f example.jpg
+v 1 0 0 0 1
+v 1 1 1 1 0
+v 1 0 1 1 1
+f example.jpg
+v 1 0 1 0 1
+v 1 1 1 0 0
+v 0 1 1 1 0
+f example.jpg
+v 1 0 1 0 1
+v 0 1 1 1 0
+v 0 0 1 1 1
+f example.jpg
+v 0 0 1 0 1
+v 0 1 1 0 0
+v 0 1 0 1 0
+f example.jpg
+v 0 0 1 0 1
+v 0 1 0 1 0
+v 0 0 0 1 1
+f example.jpg
+v 0 1 0 0 1
+v 0 1 1 0 0
+v 1 1 1 1 0
+f example.jpg
+v 0 1 0 0 1
+v 1 1 1 1 0
+v 1 1 0 1 1
+f example.jpg
+v 1 0 1 0 1
+v 0 0 1 0 0
+v 0 0 0 1 0
+f example.jpg
+v 1 0 1 0 1
+v 0 0 0 1 0
+v 1 0 0 1 1

@@ -1,9 +1,11 @@
-const inputs = {};
+function addKeyDownListener(inputs) {
+	document.addEventListener('keydown', function(event) {
+		inputs[event.code] = event.key;
+	});
+}
 
-document.addEventListener('keydown', function(event) {
-	inputs[event.code] = event.key;
-});
-
-document.addEventListener('keyup', function(event) {
-	delete inputs[event.code];
-});
+function addKeyUpListener(inputs) {
+	document.addEventListener('keyup', function(event) {
+		delete inputs[event.code];
+	});
+}

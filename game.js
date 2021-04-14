@@ -1,30 +1,12 @@
-const gameSpeed = 60;
-var currLevel = 0;
-
-var newCanv = document.createElement('canvas');
-var newCont = newCanv.getContext('2d');
-var colors;
-var data2;
-var img = new Image();
-img.onload = function() {
-	newCanv.width = img.width;
-	newCanv.height = img.height;
-	newCont.drawImage(img, 0, 0);
-	colors = newCont.getImageData(0, 0, img.width, img.height).data;
-	data2 = new Uint32Array(colors.buffer);
-	start();
-}
-img.src = 'download.jpg';
-
-function render(context, imageData, canvasWidth, canvasHeight, fps) {
-	renderLevel(levels[currLevel], context, imageData.data, canvasWidth, canvasHeight, levelCam);
-	context.putImageData(imageData, 0, 0, 0, 0, canvasWidth, canvasHeight);
-	context.fillStyle = 'rgba(255, 255, 255, 1)';
-	context.fillText('FPS: ' + Math.round(fps), canvasWidth-50, 20);
+function render(game) {
+	for (var i=0; i<game.screens.length; i++) {
+		renderScreen(game.screens[i]);
+	}
 }
 
-function tick() {
-	let pressed = Object.keys(inputs);
+function tick(game) {
+	let levelCam = game.screens[0].camera;
+	let pressed = Object.keys(game.inputs);
 	if (contains(pressed, 'KeyW')) {
 		levelCam.translate(vectorScale(vectorNormalize(vectorMultiply(copyArray(levelCam.look), [1, 0, 1, 0])), 0.02));
 	}
@@ -59,40 +41,36 @@ function tick() {
 	levelCam['lighting'] = vectorNegate(copyArray(levelCam.look));
 }
 
-function gameLoop(context, imageData, prevWidth, prevHeight, prevTime) {
-	let start = new Date();
-
-	let canvasWidth;
-	let canvasHeight;
-
-	if (prevWidth != window.innerWidth || prevHeight != window.innerHeight) {
-		context.canvas.width = window.innerWidth;
-		context.canvas.height = window.innerHeight;
-		canvasWidth = window.innerWidth;
-		canvasHeight = window.innerHeight;
-	} else {
-		canvasWidth = prevWidth;
-		canvasHeight = prevHeight;
-	}
-
-	levelCam['aspectRatio'] = canvasWidth/canvasHeight;
-
-	tick();
-	render(context, imageData, canvasWidth, canvasHeight, 1000/(start - prevTime));
-
-	window.requestAnimationFrame(function() {gameLoop(context, imageData, canvasWidth, canvasHeight, start)});
+function gameLoop(game) {
+	tick(game);
+	render(game);
+	window.requestAnimationFrame(function() {gameLoop(game)});
 }
 
-function start() {
-	const canvas = document.getElementById('canvas');
-	canvas.width = window.innerWidth;
-	canvas.height = window.innerHeight;
-	canvas.style.position = 'absolute';
-	canvas.style.top = 0;
-	canvas.style.left = 0;
-	const context = canvas.getContext('2d');
-	context.imageSmoothingEnabled = false;
-	const imageData = context.createImageData(canvas.width, canvas.height);
-
-	window.requestAnimationFrame(function() {gameLoop(context, imageData, canvas.width, canvas.height, new Date())});
+function start(game) {
+	window.requestAnimationFrame(function() {gameLoop(game);});
 }
+
+function launchExample() {
+	let game = new Game();
+	addKeyUpListener(game.inputs);
+	addKeyDownListener(game.inputs);
+
+	loadLevel('example.lvl', function(level) {
+		let canvas = document.createElement('canvas');
+		canvas.classList.add('screenCanvas');
+		canvas.width = window.innerWidth;
+		canvas.height = window.innerHeight;
+		document.body.appendChild(canvas);
+		let context = canvas.getContext('2d');
+		context.imageSmoothingEnabled = false;
+
+		game.screens.push(new Screen(canvas, context, 0, 0, 1, 1, level, 
+							new Camera([0.5, 0.75, -2, 0], [0, 0, 1, 0], canvas.width/canvas.height, 70, 0.1, 10, vectorNormalize([0, 0, -1, 0])),
+							new ArrayBuffer(canvas.width * canvas.height * 4)));
+
+		start(game);
+	});
+}
+
+launchExample();

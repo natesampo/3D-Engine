@@ -35,9 +35,9 @@ class Vertex {
 }
 
 class Face {
-	constructor(color, vertices, lightLevel) {
-		this.color = color;
+	constructor(vertices, texture, lightLevel) {
 		this.vertices = vertices;
+		this.texture = texture;
 		this.lightLevel = lightLevel;
 	}
 
@@ -114,7 +114,7 @@ class Face {
 			copyVertices.push(this.vertices[i].copy());
 		}
 
-		return new Face(this.color, copyVertices, this.lightLevel);
+		return new Face(copyVertices, this.texture, this.lightLevel);
 	}
 }
 
@@ -197,9 +197,10 @@ class Camera {
 }
 
 class Level {
-	constructor(color, bodies) {
+	constructor(color, bodies, textures) {
 		this.color = color;
 		this.bodies = bodies;
+		this.textures = textures;
 	}
 
 	translate(vector) {
@@ -227,94 +228,151 @@ class Level {
 			copyBodies.push(this.bodies[i].copy());
 		}
 
-		return new Level(this.color, copyBodies);
+		return new Level(this.color, copyBodies, this.textures);
 	}
 }
 
+class Screen {
+	constructor(canvas, context, x, y, width, height, level, camera, effects) {
+		this.canvas = canvas;
+		this.context = context;
+		this.x = x;
+		this.y = y;
+		this.width = width;
+		this.height = height;
+		this.level = level;
+		this.camera = camera;
+		this.effects = effects;
+	}
 
-function applyTransformationMatrix(vector, matrix) {
-	let newVector = [0, 0, 0, 0];
-	newVector[0] = vector[0] * matrix[0][0] + vector[1] * matrix[1][0] + vector[2] * matrix[2][0] + vector[3] * matrix[3][0];
-	newVector[1] = vector[0] * matrix[0][1] + vector[1] * matrix[1][1] + vector[2] * matrix[2][1] + vector[3] * matrix[3][1];
-	newVector[2] = vector[0] * matrix[0][2] + vector[1] * matrix[1][2] + vector[2] * matrix[2][2] + vector[3] * matrix[3][2];
-	newVector[3] = vector[0] * matrix[0][3] + vector[1] * matrix[1][3] + vector[2] * matrix[2][3] + vector[3] * matrix[3][3];
+	resize(newWidth, newHeight, pageWidth, pageHeight) {
+		if (this.canvas.width != Math.ceil(newWidth * pageWidth) || this.canvas.height != Math.ceil(newHeight * pageHeight)) {
+			this.canvas.width = Math.ceil(newWidth * pageWidth);
+			this.canvas.height = Math.ceil(newHeight * pageHeight);
+			this.context = canvas.getContext('2d');
+			this.effects = new ArrayBuffer(this.canvas.width * this.canvas.height * 4);
+			this.camera.aspectRatio = this.canvas.width/this.canvas.height;
+		}
+		this.width = newWidth;
+		this.height = newHeight;
+	}
 
-	vector[0] = newVector[0];
-	vector[1] = newVector[1];
-	vector[2] = newVector[2];
-	vector[3] = newVector[3];
-
-	return vector;
+	checkForResize() {
+		if (this.canvas.width != Math.ceil(this.width * window.innerWidth) || this.canvas.height != Math.ceil(this.height * window.innerHeight)) {
+			this.canvas.width = Math.ceil(this.width * window.innerWidth);
+			this.canvas.height = Math.ceil(this.height * window.innerHeight);
+			this.context = canvas.getContext('2d');
+			this.effects = new ArrayBuffer(this.canvas.width * this.canvas.height * 4);
+			this.camera.aspectRatio = this.canvas.width/this.canvas.height;
+		}
+	}
 }
 
-// ONLY WORKS FOR THIS SPECIFIC CASE
-function getInverseMatrix(matrix) {
-	return [
-		[matrix[0][0], matrix[1][0], matrix[2][0], 0],
-		[matrix[0][1], matrix[1][1], matrix[2][1], 0],
-		[matrix[0][2], matrix[1][2], matrix[2][2], 0],
-		[-(matrix[3][0] * matrix[0][0] + matrix[3][1] * matrix[1][0] + matrix[3][2] * matrix[2][0]),
-			-(matrix[3][0] * matrix[0][1] + matrix[3][1] * matrix[1][1] + matrix[3][2] * matrix[2][1]), 
-			-(matrix[3][0] * matrix[0][2] + matrix[3][1] * matrix[1][2] + matrix[3][2] * matrix[2][2]), 1]];
+class Game {
+	constructor(screens, inputs) {
+		this.screens = screens ? screens : [];
+		this.inputs = inputs ? inputs : {};
+	}
 }
 
-function getRotationMatrix(vector) {
-	let newAngleX = degToRad(vector[0]);
-	let newAngleY = degToRad(vector[1]);
-	let newAngleZ = degToRad(vector[2]);
-	return [
-		[Math.cos(newAngleY)*Math.cos(newAngleZ),
-			-Math.cos(newAngleX)*Math.sin(newAngleZ) + Math.sin(newAngleX)*Math.sin(newAngleY)*Math.cos(newAngleZ),
-			Math.sin(newAngleX)*Math.sin(newAngleZ) + Math.cos(newAngleX)*Math.sin(newAngleY)*Math.cos(newAngleZ),
-			0],
-		[Math.cos(newAngleY)*Math.sin(newAngleZ),
-			Math.cos(newAngleX)*Math.cos(newAngleZ) + Math.sin(newAngleX)*Math.sin(newAngleY)*Math.sin(newAngleZ),
-			-Math.sin(newAngleX)*Math.cos(newAngleZ) + Math.cos(newAngleX)*Math.sin(newAngleY)*Math.sin(newAngleZ),
-			0],
-		[-Math.sin(newAngleY),
-			Math.sin(newAngleX)*Math.cos(newAngleY),
-			Math.cos(newAngleX)*Math.cos(newAngleY),
-			0],
-		[0, 0, 0, 1]];
+function loadTexture(texture) {
+	if (!document.getElementById(texture)) {
+		return new Promise(function(resolve, reject) {
+			let xhr = new XMLHttpRequest();
+			xhr.open('GET', 'textures/' + texture);
+			xhr.onreadystatechange = function() {
+				if (this.readyState === XMLHttpRequest.DONE) {
+					let img = new Image();
+					img.onload = function() {
+						let canvas = document.createElement('canvas');
+						canvas.classList.add('textureCanvas');
+						canvas.id = texture;
+						canvas.width = img.width;
+						canvas.height = img.height;
+
+						let context = canvas.getContext('2d');
+						context.imageSmoothingEnabled = false;
+						context.drawImage(img, 0, 0);
+						resolve([texture, context.getImageData(0, 0, img.width, img.height)]);
+					}
+					img.src = 'textures/' + texture;
+				}
+			}
+			xhr.send();
+		});
+	}
 }
 
-function getPointAtMatrix(camera) {
-	let up = [0, 1, 0, 0];
+function loadLevel(level, func) {
+	return new Promise(function (resolve, reject) {
+		let xhr = new XMLHttpRequest();
+		xhr.open('GET', 'levels/' + level);
+		xhr.onreadystatechange = function() {
+			if (this.readyState === XMLHttpRequest.DONE) {
+				let levelColor;
+				let faceTexture;
+				let bodies = [];
+				let faces = [];
+				let vertices = [];
+				let promises = {};
+				let levelText = this.responseText.split('\n');
+				for (var i=0; i<levelText.length; i++) {
+					let line = levelText[i].split(' ');
+					switch (line[0]) {
+						case 'color':
+							levelColor = {'r': parseInt(line[1]), 'g': parseInt(line[2]), 'b': parseInt(line[3]), 'a': parseInt(line[4])};
+							break;
+						case 'b':
+							if (vertices.length > 0) {
+								faces.push(new Face(vertices, faceTexture));
+								vertices = [];
+							}
 
-	let newForward = camera.look;
-	let newUp = vectorNormalize(vectorSubtract(vectorScale(copyArray(newForward), vectorDotProduct(up, newForward)), up));
-	let newRight = vectorCrossProduct(newUp, newForward);
+							if (faces.length > 0) {
+								bodies.push(new Body(faces));
+								faces = [];
+							}
+							break;
+						case 'f':
+							if (vertices.length > 0) {
+								faces.push(new Face(vertices, faceTexture));
+								vertices = [];
+								if (!document.getElementById(line[1]) && !promises[line[1]]) {promises[line[1]] = (loadTexture(line[1]));}
+							}
+							faceTexture = line[1];
+							break;
+						case 'v':
+							vertices.push(new Vertex([parseInt(line[1]), parseInt(line[2]), parseInt(line[3]), 1], [parseInt(line[4]), parseInt(line[5]), 1]));
+							break;
+					}
+				}
 
-	return getInverseMatrix([
-		[newRight[0], newRight[1], newRight[2], 0],
-		[newUp[0], newUp[1], newUp[2], 0],
-		[newForward[0], newForward[1], newForward[2], 0],
-		[camera.position[0], camera.position[1], camera.position[2], 1]]);
-}
+				if (vertices.length > 0) {
+					faces.push(new Face(vertices, faceTexture));
+					vertices = [];
+				}
 
-function getProjectionMatrix(camera) {
-	let newFov = 1/Math.tan(degToRad(camera['fov']/2));
+				if (faces.length > 0) {
+					bodies.push(new Body(faces));
+					faces = [];
+				}
 
-	return [
-		[camera['aspectRatio'] * newFov, 0, 0, 0],
-		[0, newFov, 0, 0],
-		[0, 0, camera['zfar'] / (camera['zfar'] - camera['znear']), 1],
-		[0, 0, (-camera['zfar'] * camera['znear']) / (camera['zfar'] - camera['znear']), 0]];
-}
+				Promise.all(Object.values(promises)).then(function(imageDati) {
+					let textures = {};
+					for (var i in imageDati) {
+						textures[imageDati[i][0]] = imageDati[i][1];
+					}
 
-function pointToPlaneDistance(point, planePoint, planeNormal) {
-	return vectorDotProduct(point, planeNormal) - vectorDotProduct(planeNormal, planePoint);
-}
-
-function vectorIntersectPlanePortion(planePoint, planeNormal, lineStart, lineEnd) {
-	let planeDot = vectorDotProduct(planeNormal, planePoint);
-	let ad = vectorDotProduct(lineStart, planeNormal);
-	let bd = vectorDotProduct(lineEnd, planeNormal);
-	return (planeDot - ad)/(bd - ad);
-}
-
-function getPointAtPortionOfLine(lineStart, lineEnd, portion) {
-	return vectorAdd(copyArray(lineStart), vectorScale(vectorSubtract(copyArray(lineEnd), lineStart), portion));
+					resolve(new Level(levelColor, bodies, textures));
+				});
+			}
+		}
+		xhr.send();
+	}).then(function(values) {
+		if (func) {func(values);}
+	}, function() {
+		throw ('Error loading level \"levels/' + level);
+	});
 }
 
 function faceClipAgainstPlane(planePoint, planeNormal, face) {
@@ -331,7 +389,7 @@ function faceClipAgainstPlane(planePoint, planeNormal, face) {
 		}
 	}
 
-	switch(insidePoints.length) {
+	switch (insidePoints.length) {
 		case 0:
 			return [];
 			break
@@ -348,7 +406,7 @@ function faceClipAgainstPlane(planePoint, planeNormal, face) {
 			let newVertex = new Vertex(getPointAtPortionOfLine(insidePoints[1].coordinates, outsidePoints[0].coordinates, intersectPortion),
 											getPointAtPortionOfLine(insidePoints[1].textureCoordinates, outsidePoints[0].textureCoordinates, intersectPortion));
 
-			let newFace = new Face(face.color, [newVertex.copy(), insidePoints[0].copy()], face.lightLevel);
+			let newFace = new Face([newVertex.copy(), insidePoints[0].copy()], face.texture, face.lightLevel);
 			face.vertices.push(newVertex);
 
 			intersectPortion = vectorIntersectPlanePortion(planePoint, planeNormal, insidePoints[0].coordinates, outsidePoints[0].coordinates);
@@ -414,7 +472,7 @@ function clipAndProjectFace(face, canvasWidth, canvasHeight, camera) {
 	for (var k=0; k<4; k++) {
 		for (var l=clippedTriangles.length-1; l>=0; l--) {
 			let newTris = [];
-			switch(k) {
+			switch (k) {
 				case 0:
 					newTris = faceClipAgainstPlane([0, 0, 0, 0], [1, 0, 0, 0], clippedTriangles[l]);
 					break;
@@ -439,10 +497,10 @@ function clipAndProjectFace(face, canvasWidth, canvasHeight, camera) {
 	return clippedTriangles;
 }
 
-function clipAndProjectLevelBodies(level, canvasWidth, canvasHeight, camera) {
+function clipAndProjectBodies(bodies, canvasWidth, canvasHeight, camera) {
 	let facesToDraw = [];
-	for (var i=0; i<level.bodies.length; i++) {
-		let body = level.bodies[i];
+	for (var i=0; i<bodies.length; i++) {
+		let body = bodies[i];
 		for (var j=0; j<body.faces.length; j++) {
 			let face = body.faces[j];
 			let toCameraVector = vectorSubtract(copyArray(face.vertices[0].coordinates), camera.position);
@@ -488,7 +546,9 @@ function textureTriangle(face, newImageData, depthBuffer, canvasWidth, imgData) 
 	let tyStep2 = ((dy2) ? (textureVertex3[1] - textureVertex1[1]) / dy2 : 0);
 	let twStep2 = ((dy2) ? (textureVertex3[2] - textureVertex1[2]) / dy2 : 0);
 
-	let imgWidth = img.width;
+	let imgWidth = imgData.width;
+	let imgHeight = imgData.height;
+	let colorData = new Uint32Array(imgData.data.buffer);
 
 	let startX = vertex1[0];
 	let startTx = textureVertex1[0];
@@ -515,12 +575,12 @@ function textureTriangle(face, newImageData, depthBuffer, canvasWidth, imgData) 
 			if (startX != endX) {
 				let tStep = 1/(endX - startX);
 
-				let txStep3 = tStep * (endTx - startTx) * img.width;
-				let tyStep3 = tStep * (endTy - startTy) * img.height;
+				let txStep3 = tStep * (endTx - startTx) * imgWidth;
+				let tyStep3 = tStep * (endTy - startTy) * imgHeight;
 				let twStep3 = tStep * (endTw - startTw);
 
-				let tx = startTx * img.width;
-				let ty = startTy * img.height;
+				let tx = startTx * imgWidth;
+				let ty = startTy * imgHeight;
 				let tw = startTw;
 				let ind = j * canvasWidth + startX << 0;
 
@@ -531,7 +591,7 @@ function textureTriangle(face, newImageData, depthBuffer, canvasWidth, imgData) 
 					tx /= tw;
 					for (var k=startX; k<=endX; k++) {
 						if (tw > depthBuffer[ind]) {
-							newImageData[ind] = imgData[(ty << 0) * imgWidth + (tx << 0)];
+							newImageData[ind] = colorData[(ty << 0) * imgWidth + (tx << 0)];
 
 							depthBuffer[ind] = tw;
 						}
@@ -543,7 +603,7 @@ function textureTriangle(face, newImageData, depthBuffer, canvasWidth, imgData) 
 				} else {
 					for (var k=startX; k<=endX; k++) {
 						if (tw > depthBuffer[ind]) {
-							newImageData[ind] = imgData[(ty/tw << 0) * imgWidth + (tx/tw << 0)];
+							newImageData[ind] = colorData[(ty/tw << 0) * imgWidth + (tx/tw << 0)];
 
 							depthBuffer[ind] = tw;
 						}
@@ -595,12 +655,12 @@ function textureTriangle(face, newImageData, depthBuffer, canvasWidth, imgData) 
 			if (startX != endX) {
 				let tStep = 1/(endX - startX);
 				
-				let txStep3 = tStep * (endTx - startTx) * img.width;
-				let tyStep3 = tStep * (endTy - startTy) * img.height;
+				let txStep3 = tStep * (endTx - startTx) * imgWidth;
+				let tyStep3 = tStep * (endTy - startTy) * imgHeight;
 				let twStep3 = tStep * (endTw - startTw);
 
-				let tx = startTx * img.width;
-				let ty = startTy * img.height;
+				let tx = startTx * imgWidth;
+				let ty = startTy * imgHeight;
 				let tw = startTw;
 				let ind = j * canvasWidth + startX << 0;
 
@@ -611,7 +671,7 @@ function textureTriangle(face, newImageData, depthBuffer, canvasWidth, imgData) 
 					tx /= tw;
 					for (var k=startX; k<=endX; k++) {
 						if (tw > depthBuffer[ind]) {
-							newImageData[ind] = imgData[(ty << 0) * imgWidth + (tx << 0)];
+							newImageData[ind] = colorData[(ty << 0) * imgWidth + (tx << 0)];
 
 							depthBuffer[ind] = tw;
 						}
@@ -623,7 +683,7 @@ function textureTriangle(face, newImageData, depthBuffer, canvasWidth, imgData) 
 				} else {
 					for (var k=startX; k<=endX; k++) {
 						if (tw > depthBuffer[ind]) {
-							newImageData[ind] = imgData[(ty/tw << 0) * imgWidth + (tx/tw << 0)];
+							newImageData[ind] = colorData[(ty/tw << 0) * imgWidth + (tx/tw << 0)];
 
 							depthBuffer[ind] = tw;
 						}
@@ -651,50 +711,28 @@ function textureTriangle(face, newImageData, depthBuffer, canvasWidth, imgData) 
 	return newImageData;
 }
 
-function renderLevel(level, context, imageData, canvasWidth, canvasHeight, camera) {
-	//context.clearRect(0, 0, canvasWidth, canvasHeight);
-	let depthBuffer = new Float32Array(canvasWidth*canvasHeight);
+function renderScreen(screen) {
+	screen.checkForResize();
 
-	//context.fillStyle = level.getColor();
-	//context.fillRect(0, 0, canvasWidth, canvasHeight);
+	let canvasWidth = screen.canvas.width;
+	let canvasHeight = screen.canvas.height;
+	let level = screen.level;
 
-	let buf = new ArrayBuffer(imageData.length);
-	let buf8 = new Uint8ClampedArray(buf);
-	let data = new Uint32Array(buf);
-	data.fill((level.color['a'] << 24) | (level.color['b'] << 16) | (level.color['g'] << 8) | level.color['r']);
+	let depthBuffer = new Float32Array(canvasWidth * canvasHeight);
 
-	//let newImageData = context.getImageData(0, 0, canvasWidth, canvasHeight);
+	let imageData = screen.context.createImageData(canvasWidth, canvasHeight);
+	let data = new Uint32Array(imageData.data.buffer);
+	let color = (level.color['a'] << 24) | (level.color['b'] << 16) | (level.color['g'] << 8) | level.color['r'];
+	data.fill(color);
 
-	let facesToDraw = clipAndProjectLevelBodies(level, canvasWidth, canvasHeight, camera);
-
-	//facesToDraw.sort(function(elem1, elem2) {return elem2.getAverageZ() - elem1.getAverageZ();});
+	let facesToDraw = clipAndProjectBodies(level.bodies, canvasWidth, canvasHeight, screen.camera);
 	for (var i=0; i<facesToDraw.length; i++) {
 		let face = facesToDraw[i];
 
-		/*context.fillStyle = 'rgba(' + (Math.round(face.color['r'] * face.lightLevel)).toString() + ', ' +
-										(Math.round(face.color['g'] * face.lightLevel)).toString() + ', ' +
-										(Math.round(face.color['b'] * face.lightLevel)).toString() + ', ' +
-										face.color['a'].toString() + ')';
-		context.strokeStyle = 'rgba(30, 30, 30, 1)';
-		context.lineWidth = 4;
-		context.beginPath();
-		context.lineTo(face.vertices[0].coordinates[0], face.vertices[0].coordinates[1]);
-
-		for (var j=0; j<face.vertices.length; j++) {
-			let nextVertex = face.vertices[(j + 1) % face.vertices.length];
-
-			context.lineTo(nextVertex.coordinates[0], nextVertex.coordinates[1]);
-		}
-
-		context.stroke();
-		//context.fill();
-		context.closePath();*/
-
-		textureTriangle(face, data, depthBuffer, canvasWidth, data2);
+		textureTriangle(face, data, depthBuffer, canvasWidth, level.textures[face.texture]);
 	}
 
-	imageData.set(buf8);
+	let context = screen.context;
 
-	//context.putImageData(imageData, 0, 0);
-	//context.drawImage(imageData, 0, 0);
+	context.putImageData(imageData, 0, 0, 0, 0, canvasWidth, canvasHeight);
 }
