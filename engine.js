@@ -338,7 +338,14 @@ function loadLevel(level, func) {
 							if (vertices.length > 0) {
 								faces.push(new Face(vertices, faceTexture));
 								vertices = [];
-								if (!document.getElementById(line[1]) && !promises[line[1]]) {promises[line[1]] = (loadTexture(line[1]));}
+								let texture = document.getElementById(line[1]);
+								if (!texture) {
+									if (!promises[line[1]]) {
+										promises[line[1]] = (loadTexture(line[1]));
+									}
+								} else {
+									textures[line[1]] = texture.getContext('2d').getImageData(0, 0, img.width, img.height);
+								}
 							}
 							faceTexture = line[1];
 							break;
