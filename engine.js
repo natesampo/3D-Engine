@@ -233,9 +233,10 @@ class Level {
 }
 
 class Screen {
-	constructor(canvas, context, x, y, width, height, level, camera, effects) {
+	constructor(canvas, context, pixelData, x, y, width, height, level, camera, effects) {
 		this.canvas = canvas;
 		this.context = context;
+		this.pixelData = pixelData;
 		this.x = x;
 		this.y = y;
 		this.width = width;
@@ -521,7 +522,7 @@ function clipAndProjectBodies(bodies, canvasWidth, canvasHeight, camera) {
 	return facesToDraw;
 }
 
-function textureTriangle(face, newImageData, depthBuffer, canvasWidth, imgData) {
+function textureTriangle(face, pixelData, depthBuffer, canvasWidth, textureData) {
 	face.floor();
 	sortTriangleVerticesByY(face);
 
@@ -546,9 +547,9 @@ function textureTriangle(face, newImageData, depthBuffer, canvasWidth, imgData) 
 	let tyStep2 = ((dy2) ? (textureVertex3[1] - textureVertex1[1]) / dy2 : 0);
 	let twStep2 = ((dy2) ? (textureVertex3[2] - textureVertex1[2]) / dy2 : 0);
 
-	let imgWidth = imgData.width;
-	let imgHeight = imgData.height;
-	let colorData = new Uint32Array(imgData.data.buffer);
+	let textureWidth = textureData.width;
+	let textureHeight = textureData.height;
+	let colorData = new Uint32Array(textureData.data.buffer);
 
 	let startX = vertex1[0];
 	let startTx = textureVertex1[0];
@@ -575,12 +576,12 @@ function textureTriangle(face, newImageData, depthBuffer, canvasWidth, imgData) 
 			if (startX != endX) {
 				let tStep = 1/(endX - startX);
 
-				let txStep3 = tStep * (endTx - startTx) * imgWidth;
-				let tyStep3 = tStep * (endTy - startTy) * imgHeight;
+				let txStep3 = tStep * (endTx - startTx) * textureWidth;
+				let tyStep3 = tStep * (endTy - startTy) * textureHeight;
 				let twStep3 = tStep * (endTw - startTw);
 
-				let tx = startTx * imgWidth;
-				let ty = startTy * imgHeight;
+				let tx = startTx * textureWidth;
+				let ty = startTy * textureHeight;
 				let tw = startTw;
 				let ind = j * canvasWidth + startX << 0;
 
@@ -591,7 +592,7 @@ function textureTriangle(face, newImageData, depthBuffer, canvasWidth, imgData) 
 					tx /= tw;
 					for (var k=startX; k<=endX; k++) {
 						if (tw > depthBuffer[ind]) {
-							newImageData[ind] = colorData[(ty << 0) * imgWidth + (tx << 0)];
+							pixelData[ind] = colorData[(ty << 0) * textureWidth + (tx << 0)];
 
 							depthBuffer[ind] = tw;
 						}
@@ -603,7 +604,7 @@ function textureTriangle(face, newImageData, depthBuffer, canvasWidth, imgData) 
 				} else {
 					for (var k=startX; k<=endX; k++) {
 						if (tw > depthBuffer[ind]) {
-							newImageData[ind] = colorData[(ty/tw << 0) * imgWidth + (tx/tw << 0)];
+							pixelData[ind] = colorData[(ty/tw << 0) * textureWidth + (tx/tw << 0)];
 
 							depthBuffer[ind] = tw;
 						}
@@ -655,12 +656,12 @@ function textureTriangle(face, newImageData, depthBuffer, canvasWidth, imgData) 
 			if (startX != endX) {
 				let tStep = 1/(endX - startX);
 				
-				let txStep3 = tStep * (endTx - startTx) * imgWidth;
-				let tyStep3 = tStep * (endTy - startTy) * imgHeight;
+				let txStep3 = tStep * (endTx - startTx) * textureWidth;
+				let tyStep3 = tStep * (endTy - startTy) * textureHeight;
 				let twStep3 = tStep * (endTw - startTw);
 
-				let tx = startTx * imgWidth;
-				let ty = startTy * imgHeight;
+				let tx = startTx * textureWidth;
+				let ty = startTy * textureHeight;
 				let tw = startTw;
 				let ind = j * canvasWidth + startX << 0;
 
@@ -671,7 +672,7 @@ function textureTriangle(face, newImageData, depthBuffer, canvasWidth, imgData) 
 					tx /= tw;
 					for (var k=startX; k<=endX; k++) {
 						if (tw > depthBuffer[ind]) {
-							newImageData[ind] = colorData[(ty << 0) * imgWidth + (tx << 0)];
+							pixelData[ind] = colorData[(ty << 0) * textureWidth + (tx << 0)];
 
 							depthBuffer[ind] = tw;
 						}
@@ -683,7 +684,7 @@ function textureTriangle(face, newImageData, depthBuffer, canvasWidth, imgData) 
 				} else {
 					for (var k=startX; k<=endX; k++) {
 						if (tw > depthBuffer[ind]) {
-							newImageData[ind] = colorData[(ty/tw << 0) * imgWidth + (tx/tw << 0)];
+							pixelData[ind] = colorData[(ty/tw << 0) * textureWidth + (tx/tw << 0)];
 
 							depthBuffer[ind] = tw;
 						}
@@ -708,20 +709,20 @@ function textureTriangle(face, newImageData, depthBuffer, canvasWidth, imgData) 
 		}
 	}
 
-	return newImageData;
+	return pixelData;
 }
 
 function renderScreen(screen) {
 	screen.checkForResize();
 
+	let pixelData = screen.pixelData;
 	let canvasWidth = screen.canvas.width;
 	let canvasHeight = screen.canvas.height;
 	let level = screen.level;
 
 	let depthBuffer = new Float32Array(canvasWidth * canvasHeight);
 
-	let imageData = screen.context.createImageData(canvasWidth, canvasHeight);
-	let data = new Uint32Array(imageData.data.buffer);
+	let data = new Uint32Array(pixelData.data.buffer);
 	let color = (level.color['a'] << 24) | (level.color['b'] << 16) | (level.color['g'] << 8) | level.color['r'];
 	data.fill(color);
 
@@ -732,7 +733,40 @@ function renderScreen(screen) {
 		textureTriangle(face, data, depthBuffer, canvasWidth, level.textures[face.texture]);
 	}
 
-	let context = screen.context;
+	screen.context.putImageData(pixelData, 0, 0, 0, 0, canvasWidth, canvasHeight);
+}
 
-	context.putImageData(imageData, 0, 0, 0, 0, canvasWidth, canvasHeight);
+function gameLoop(game) {
+	tick(game);
+	for (var i=0; i<game.screens.length; i++) {
+		renderScreen(game.screens[i]);
+	}
+	render(game);
+	window.requestAnimationFrame(function() {gameLoop(game)});
+}
+
+function start(game) {
+	window.requestAnimationFrame(function() {gameLoop(game);});
+}
+
+function launchExample() {
+	let game = new Game();
+	addKeyUpListener(game.inputs);
+	addKeyDownListener(game.inputs);
+
+	loadLevel('example.lvl', function(level) {
+		let canvas = document.createElement('canvas');
+		canvas.classList.add('screenCanvas');
+		canvas.width = window.innerWidth;
+		canvas.height = window.innerHeight;
+		document.body.appendChild(canvas);
+		let context = canvas.getContext('2d');
+		context.imageSmoothingEnabled = false;
+
+		game.screens.push(new Screen(canvas, context, context.createImageData(canvas.width, canvas.height), 0, 0, 1, 1, level, 
+							new Camera([0.5, 0.75, -2, 0], [0, 0, 1, 0], canvas.width/canvas.height, 70, 0.1, 10, vectorNormalize([0, 0, -1, 0])),
+							new ArrayBuffer(canvas.width * canvas.height * 4)));
+
+		start(game);
+	});
 }
