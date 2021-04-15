@@ -343,7 +343,7 @@ function loadLevel(level, func) {
 									if (!promises[line[1]]) {
 										promises[line[1]] = (loadTexture(line[1]));
 									}
-								} else {
+								} else if (!textures[line[1]]) {
 									textures[line[1]] = texture.getContext('2d').getImageData(0, 0, img.width, img.height);
 								}
 							}
