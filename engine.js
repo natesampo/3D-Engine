@@ -233,10 +233,11 @@ class Level {
 }
 
 class Screen {
-	constructor(canvas, context, pixelData, x, y, width, height, level, camera, effects) {
+	constructor(canvas, context, pixelData, depthBuffer, x, y, width, height, level, camera, effects) {
 		this.canvas = canvas;
 		this.context = context;
 		this.pixelData = pixelData;
+		this.depthBuffer = depthBuffer;
 		this.x = x;
 		this.y = y;
 		this.width = width;
@@ -591,36 +592,18 @@ function textureTriangle(face, pixelData, depthBuffer, canvasWidth, textureData)
 				let ty = startTy * textureHeight;
 				let tw = startTw;
 				let ind = j * canvasWidth + startX << 0;
+				
+				for (var k=startX; k<=endX; k++) {
+					if (tw > depthBuffer[ind]) {
+						pixelData[ind] = colorData[(ty/tw << 0) * textureWidth + (tx/tw << 0)];
 
-				if (twStep3 == 0) {
-					let txtw = txStep3/tw;
-					let tytw = tyStep3/tw;
-					ty /= tw;
-					tx /= tw;
-					for (var k=startX; k<=endX; k++) {
-						if (tw > depthBuffer[ind]) {
-							pixelData[ind] = colorData[(ty << 0) * textureWidth + (tx << 0)];
-
-							depthBuffer[ind] = tw;
-						}
-
-						tx += txtw;
-						ty += tytw;
-						ind++;
+						depthBuffer[ind] = tw;
 					}
-				} else {
-					for (var k=startX; k<=endX; k++) {
-						if (tw > depthBuffer[ind]) {
-							pixelData[ind] = colorData[(ty/tw << 0) * textureWidth + (tx/tw << 0)];
 
-							depthBuffer[ind] = tw;
-						}
-
-						tx += txStep3;
-						ty += tyStep3;
-						tw += twStep3;
-						ind++;
-					}
+					tx += txStep3;
+					ty += tyStep3;
+					tw += twStep3;
+					ind++;
 				}
 			}
 
@@ -672,35 +655,17 @@ function textureTriangle(face, pixelData, depthBuffer, canvasWidth, textureData)
 				let tw = startTw;
 				let ind = j * canvasWidth + startX << 0;
 
-				if (twStep3 == 0) {
-					let txtw = txStep3/tw;
-					let tytw = tyStep3/tw;
-					ty /= tw;
-					tx /= tw;
-					for (var k=startX; k<=endX; k++) {
-						if (tw > depthBuffer[ind]) {
-							pixelData[ind] = colorData[(ty << 0) * textureWidth + (tx << 0)];
+				for (var k=startX; k<=endX; k++) {
+					if (tw > depthBuffer[ind]) {
+						pixelData[ind] = colorData[(ty/tw << 0) * textureWidth + (tx/tw << 0)];
 
-							depthBuffer[ind] = tw;
-						}
-
-						tx += txtw;
-						ty += tytw;
-						ind++;
+						depthBuffer[ind] = tw;
 					}
-				} else {
-					for (var k=startX; k<=endX; k++) {
-						if (tw > depthBuffer[ind]) {
-							pixelData[ind] = colorData[(ty/tw << 0) * textureWidth + (tx/tw << 0)];
 
-							depthBuffer[ind] = tw;
-						}
-
-						tx += txStep3;
-						ty += tyStep3;
-						tw += twStep3;
-						ind++;
-					}
+					tx += txStep3;
+					ty += tyStep3;
+					tw += twStep3;
+					ind++;
 				}
 			}
 
@@ -723,11 +688,12 @@ function renderScreen(screen) {
 	screen.checkForResize();
 
 	let pixelData = screen.pixelData;
+	let depthBuffer = screen.depthBuffer;
 	let canvasWidth = screen.canvas.width;
 	let canvasHeight = screen.canvas.height;
 	let level = screen.level;
 
-	let depthBuffer = new Float32Array(canvasWidth * canvasHeight);
+	depthBuffer.fill(0);
 
 	let data = new Uint32Array(pixelData.data.buffer);
 	let color = (level.color['a'] << 24) | (level.color['b'] << 16) | (level.color['g'] << 8) | level.color['r'];
@@ -770,9 +736,9 @@ function launchExample() {
 		let context = canvas.getContext('2d');
 		context.imageSmoothingEnabled = false;
 
-		game.screens.push(new Screen(canvas, context, context.createImageData(canvas.width, canvas.height), 0, 0, 1, 1, level, 
-							new Camera([0.5, 0.75, -2, 0], [0, 0, 1, 0], canvas.width/canvas.height, 70, 0.1, 10, vectorNormalize([0, 0, -1, 0])),
-							new ArrayBuffer(canvas.width * canvas.height * 4)));
+		game.screens.push(new Screen(canvas, context, context.createImageData(canvas.width, canvas.height), new Float32Array(canvas.width * canvas.height),
+							0, 0, 1, 1, level, new Camera([0.5, 0.75, -2, 0], [0, 0, 1, 0], canvas.width/canvas.height, 70, 0.1, 10,
+							vectorNormalize([0, 0, -1, 0])), new ArrayBuffer(canvas.width * canvas.height * 4)));
 
 		start(game);
 	});
