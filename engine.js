@@ -557,7 +557,7 @@ function textureTriangle(face, pixelData, depthBuffer, canvasWidth, textureData)
 
 	let textureWidth = textureData.width;
 	let textureHeight = textureData.height;
-	let colorData = new Uint32Array(textureData.data.buffer);
+	let colorData = new Int32Array(textureData.data.buffer);
 
 	let startX = vertex1[0];
 	let startTx = textureVertex1[0];
@@ -680,8 +680,6 @@ function textureTriangle(face, pixelData, depthBuffer, canvasWidth, textureData)
 			j++;
 		}
 	}
-
-	return pixelData;
 }
 
 function renderScreen(screen) {
@@ -695,7 +693,7 @@ function renderScreen(screen) {
 
 	depthBuffer.fill(0);
 
-	let data = new Uint32Array(pixelData.data.buffer);
+	let data = new Int32Array(pixelData.data.buffer);
 	let color = (level.color['a'] << 24) | (level.color['b'] << 16) | (level.color['g'] << 8) | level.color['r'];
 	data.fill(color);
 
